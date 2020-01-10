@@ -3,7 +3,7 @@
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
 Version: 0.2.19
-Release: 16%{?dist}
+Release: 18%{?dist}
 License: GPLv2+
 Group: System Environment/Daemons
 # The source for this package was pulled from upstream git.  Use the
@@ -51,6 +51,7 @@ Patch35: tuned-xvd.patch
 Patch36: tuned-sap-netweaver-increase-vm-max-map-count.patch
 Patch37: tuned-add-oracle.patch
 Patch38: tuned-ktune-sysctl-no-revert.patch
+Patch39: tuned-not-wobble-governor-on-condrestart.patch
 
 URL: https://fedorahosted.org/tuned/
 Buildroot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
@@ -142,6 +143,7 @@ Additional tuned profile(s) targeted to Oracle loads.
 %patch36 -p1
 %patch37 -p1
 %patch38 -p1
+%patch39 -p1
 
 # fix permissions on ktune scripts (some were created by the patches)
 chmod 0755 tune-profiles/*/ktune.sh
@@ -253,6 +255,15 @@ fi
 %{_mandir}/man7/tuned-profiles-oracle.7*
 
 %changelog
+* Tue Nov 29 2016 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-18
+- switched to sysfs for governor switching, cpuspeed config is still patched
+  for compatibility
+  related: rhbz#1313489
+
+* Wed Oct 26 2016 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-17
+- do not wobble CPU governor on condrestart
+  resolves: rhbz#1313489
+
 * Tue Nov 24 2015 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-16
 - added oracle profile
   resolves: rhbz#1196294
