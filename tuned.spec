@@ -3,7 +3,7 @@
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
 Version: 0.2.19
-Release: 13%{?dist}
+Release: 13%{?dist}.1
 License: GPLv2+
 Group: System Environment/Daemons
 # The source for this package was pulled from upstream git.  Use the
@@ -73,6 +73,20 @@ manual monitoring of the system. Instead of the typical IO/sec it collects
 minimal, maximal and average time between operations to be able to
 identify applications that behave power inefficient (many small operations
 instead of fewer large ones).
+
+%package profiles-sap
+Summary: Additional tuned profile(s) targeted to SAP NetWeaver loads
+Requires: %{name} = %{version}-%{release}
+
+%description profiles-sap
+Additional tuned profile(s) targeted to SAP NetWeaver loads.
+
+%package profiles-sap-hana
+Summary: Additional tuned profile(s) targeted to SAP HANA loads
+Requires: %{name} = %{version}-%{release}
+
+%description profiles-sap-hana
+Additional tuned profile(s) targeted to SAP HANA loads.
 
 %prep
 %setup -q
@@ -156,9 +170,13 @@ fi
 %{_bindir}/tuned-adm
 %config(noreplace) %{_sysconfdir}/tune-profiles/active-profile
 %{_sysconfdir}/tune-profiles
+%exclude %{_sysconfdir}/tune-profiles/sap-netweaver
+%exclude %{_sysconfdir}/tune-profiles/sap-hana
+%exclude %{_sysconfdir}/tune-profiles/sap-hana-vmware
 %{_datadir}/tuned
 %{_mandir}/man1/tuned-adm.*
 %{_mandir}/man5/tuned.conf.*
+%{_mandir}/man7/tuned-profiles.7*
 %{_mandir}/man8/tuned.*
 %attr(0755,root,root) %{_initddir}/ktune
 %config(noreplace) %{_sysconfdir}/sysconfig/ktune
@@ -188,8 +206,22 @@ fi
 %{_mandir}/man8/diskdevstat.*
 %{_mandir}/man8/scomes.*
 
+%files profiles-sap
+%defattr(-,root,root,-)
+%{_sysconfdir}/tune-profiles/sap-netweaver
+%{_mandir}/man7/tuned-profiles-sap.7*
+
+%files profiles-sap-hana
+%defattr(-,root,root,-)
+%{_sysconfdir}/tune-profiles/sap-hana
+%{_sysconfdir}/tune-profiles/sap-hana-vmware
+%{_mandir}/man7/tuned-profiles-sap-hana.7*
 
 %changelog
+* Wed Oct 15 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-13.1
+- updated sap profiles and moved them to subpackages
+  resolves: rhbz#1153063
+
 * Mon Jul 22 2013 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-13
 - add support for upstream THP
   resolves: rhbz#912788

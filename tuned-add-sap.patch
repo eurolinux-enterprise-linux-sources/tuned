@@ -1,20 +1,345 @@
+diff --git a/Makefile b/Makefile
+index bcdb148..98e1079 100644
+--- a/Makefile
++++ b/Makefile
+@@ -9,7 +9,7 @@ GITTAG = v$(VERSION)
+ 
+ DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune udev libexec
+ FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned_nettool.py tuned_logging.py tuned.bash tuned.tmpfiles
+-FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes doc/diskdevstat.8 doc/netdevstat.8 doc/scomes.8 doc/varnetload.8
++FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes doc/diskdevstat.8 doc/netdevstat.8 doc/scomes.8 doc/varnetload.8 doc/tuned-profiles.7 doc/tuned-profiles-sap.7 doc/tuned-profiles-sap-hana.7
+ FILES_examples = ktune/sysctl.ktune
+ FILES_contrib = contrib/diskdevstat contrib/netdevstat contrib/scomes contrib/varnetload
+ FILES_tuningplugins = tuningplugins/cpu.py tuningplugins/disk.py tuningplugins/net.py tuningplugins/__init__.py
+@@ -115,6 +115,10 @@ install:
+ 	install -m 0644 doc/tuned.conf.5 $(DESTDIR)/usr/share/man/man5
+ 	mkdir -p $(DESTDIR)/usr/share/man/man1
+ 	install -m 0644 doc/tuned-adm.1 $(DESTDIR)/usr/share/man/man1
++	mkdir -p $(DESTDIR)/usr/share/man/man7
++	install -m 0644 doc/tuned-profiles.7 $(DESTDIR)/usr/share/man/man7
++	install -m 0644 doc/tuned-profiles-sap.7 $(DESTDIR)/usr/share/man/man7
++	install -m 0644 doc/tuned-profiles-sap-hana.7 $(DESTDIR)/usr/share/man/man7
+ 
+ 	# Install ktune
+ 	install -m 755 -d $(DESTDIR)/etc
 diff --git a/doc/tuned-adm.1 b/doc/tuned-adm.1
-index 246f12b..c51ada3 100644
+index 246f12b..53a6b7f 100644
 --- a/doc/tuned-adm.1
 +++ b/doc/tuned-adm.1
-@@ -101,6 +101,10 @@ Profile optimized for virtual guests based on enterprise-storage profile. It add
- .BI "virtual-host"
- Profile optimized for virtual hosts based on enterprise-storage profile. It additionally decreases virtual memory swapiness and enables more aggresive writeback of dirty pages.
+@@ -1,7 +1,7 @@
+ .\"/* 
+ .\" * All rights reserved
+-.\" * Copyright (C) 2009 Red Hat, Inc.
+-.\" * Authors: Marcela Mašláňová, Phil Knirsch
++.\" * Copyright (C) 2009-2014 Red Hat, Inc.
++.\" * Authors: Marcela Mašláňová, Phil Knirsch, Jaroslav Škarvada
+ .\" *
+ .\" * This program is free software; you can redistribute it and/or
+ .\" * modify it under the terms of the GNU General Public License
+@@ -18,7 +18,7 @@
+ .\" * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ .\" */
+ .\" 
+-.TH TUNED_ADM "1" "9 Jul 2009" "Linux Programmer's Manual"
++.TH TUNED_ADM "1" "15 Oct 2014" "Linux Programmer's Manual"
+ .SH NAME
+ tuned-adm \- commandline tool for switching between different tuning profiles
+ .SH SYNOPSIS
+@@ -29,8 +29,6 @@ tuned-adm \- commandline tool for switching between different tuning profiles
+ .SH DESCRIPTION
+ This command line utility allows user to switch between user definable tuning profiles. Several predefined profiles are already included for some of the more common cases. Although the profiles typically refer to a common use case you can of course switch to any profile on any system. So switching to the laptop-battery-powersave profile on a server will activate this profile on it. This way, depending on your requirements you can select any of the profiles that fits your needs. You can even create your own profile, either based on one of the existing ones by copying it or make a completely new one. The profiles are stored in subdirectories below /etc/tune-profiles.
  
-+.TP
-+.BI "sap"
-+Profile optimized for the best performance of SAP software. It is based on enterprise-storage profile. It additionally tunes sysctl settings regarding shared memory, semaphores and maximum number of memory map areas a process may have.
-+
+-The power saving profiles contain settings that are typically not enabled by default as they will noticeably impact the latency/performance of your system as opposed to the power saving mechanisms we have enabled by default. On the other hand the performance profiles disable the additional power saving mechanisms of tuned and ktune as they would negatively impact the performance tuning, be it throughput or latency.
+-
+ .SH "OPTIONS"
+ 
+ .SS
+@@ -54,60 +52,17 @@ Switches to the given profilename. If none is given or no valid one is given the
+ .B off
+ Switch off all ktune and tuned settings and remove them from services. The configuration file are set to previous settings.
+ 
+-.SH PREDEFINED PROFILES
+-At the moment we're providing the following pre defined profiles:
+-
+-.TP
+-.BI "default"
+-This is the default powersaving profile. It is the lowest of the available profiles in regard to powersaving and only enables CPU and disk plugins of tuned. This is not the same as 'tuned-adm off', where tuned and ktune services are disabled.
+-
+-.TP
+-.BI "desktop-powersave"
+-A powersaving profile directed at desktop systems. Enables ALPM powersaving for SATA host adapters as well as the CPU, ethernet and disk plugins of tuned.
+-
+-.TP
+-.BI server-powersave
+-A powersaving profile directed at server systems. Enables ALPM powersaving for SATA host adapters, disables CD-ROM polling via hal and activates the CPU and disk plugins of tuned.
+-
+-.TP
+-.BI laptop-ac-powersave
+-Medium powersaving profile directed at laptops running on AC. Enables ALPM powersaving for SATA host adapters,  WiFi power saving as well as CPU, ethernet and disk plugins of tuned.
+-
+-.TP
+-.BI laptop-battery-powersave
+-Strong powersaving profile directed at laptops running on battery. It activates all power saving mechanisms from the previous profiles plus it enables multi core power savings scheduler for low wakeup systems and makes sure the ondemand governor is active and the AC97 audio power saving is enabled.  This profile can be used for any kind of system, not only laptops on battery power in order to save the maximum amount of power. The tradeoff for this profile is a noticeable impact on performance, specifically latency of disk and network IO. 
+-
+-.TP
+-.BI "spindown-disk"
+-Strong powersaving profile enabling aggresive disk spin-down. Disk writeback values are increased and disk swappines is lowered. CD drives polling and log syncing is disabled. All partitions are remounted with 'noatime' option. All tuned plugins are disabled.
+-
+-.TP
+-.BI throughput-performance
+-Server profile for typical throughput performance tuning. Disables tuned and ktune power saving mechanisms and enables sysctl settings that improve the throughput performance of your disk and network IO and switches to the deadline scheduler. CPU governor is set to performance.
+-
+-.TP
+-.BI latency-performance
+-Server profile for typical latency performance tuning. Disables tuned and ktune power saving mechanisms and enables deadline IO scheduler. CPU governor is set to performance.
+-
+-.TP
+-.BI "enterprise-storage"
+-Server profile for high disk throughput performace tuning. Disables tuned and ktune power saving mechanisms and enables deadline IO scheduler. Enables hugepages and disables disk barriers. Disk readahead values are increased. CPU governor is set to performance.
+-
+-.TP
+-.BI "virtual-guest"
+-Profile optimized for virtual guests based on enterprise-storage profile. It additionally decreases virtual memory swapiness.
+-
+-.TP
+-.BI "virtual-host"
+-Profile optimized for virtual hosts based on enterprise-storage profile. It additionally decreases virtual memory swapiness and enables more aggresive writeback of dirty pages.
+-
  .SH "FILES"
  .nf
  /etc/tune-profiles/*
+ 
+ .SH "SEE ALSO"
+ .BR tuned (8)
++.BR tuned-profiles (7)
++.BR tuned-profiles-sap (7)
++.BR tuned-profiles-sap-hana (7)
+ .SH AUTHOR
+-.nf
++.NF
+ Marcela Mašláňová <mmaslano@redhat.com>
+ Phil Knirsch <pknirsch@redhat.com>
++Jaroslav Škarvada <jskarvad@redhat.com>
+diff --git a/doc/tuned-profiles-sap-hana.7 b/doc/tuned-profiles-sap-hana.7
+new file mode 100644
+index 0000000..2ead85a
+--- /dev/null
++++ b/doc/tuned-profiles-sap-hana.7
+@@ -0,0 +1,57 @@
++.\"/* 
++.\" * All rights reserved
++.\" * Copyright (C) 2009-2014 Red Hat, Inc.
++.\" * Authors: Jaroslav Škarvada
++.\" *
++.\" * This program is free software; you can redistribute it and/or
++.\" * modify it under the terms of the GNU General Public License
++.\" * as published by the Free Software Foundation; either version 2
++.\" * of the License, or (at your option) any later version.
++.\" *
++.\" * This program is distributed in the hope that it will be useful,
++.\" * but WITHOUT ANY WARRANTY; without even the implied warranty of
++.\" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++.\" * GNU General Public License for more details.
++.\" *
++.\" * You should have received a copy of the GNU General Public License
++.\" * along with this program; if not, write to the Free Software
++.\" * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++.\" */
++.\" 
++.TH TUNED_PROFILES_SAP_HANA "7" "23 Sep 2014" "Fedora Power Management SIG" "tuned"
++.SH NAME
++tuned\-profiles\-sap\-hana - description of profiles provided for the SAP HANA
++
++.SH DESCRIPTION
++These profiles provides performance optimizations for the SAP HANA applications.
++
++.SH PROFILES
++The following profiles are provided:
++
++.TP
++.BI "sap\-hana"
++A performance optimized profile for the SAP HANA applications.
++It is based on throughput\-performance profile. It additionally disables
++transparent hugepages, locks CPU to the low C states (by PM QoS) and tunes sysctl
++regarding semaphores.
++
++.TP
++.BI "sap\-hana\-vmware"
++A performance optimized profile for the SAP HANA applications on VMware.
++It is based on throughput\-performance profile. It additionally disables
++transparent hugepages, locks CPU to the low C states (by PM QoS) and tunes sysctl
++regarding semaphores. It decreases virtual memory swappiness and disables large
++recieve offload for the network adapter.
++
++.SH "FILES"
++.NF
++/etc/tune\-profiles/*
++
++.SH "SEE ALSO"
++.BR tuned (8)
++.BR tuned\-adm (1)
++.BR tuned\-profiles (7)
++.BR tuned\-profiles\-sap (7)
++.SH AUTHOR
++.NF
++Jaroslav Škarvada <jskarvad@redhat.com>
+diff --git a/doc/tuned-profiles-sap.7 b/doc/tuned-profiles-sap.7
+new file mode 100644
+index 0000000..4211775
+--- /dev/null
++++ b/doc/tuned-profiles-sap.7
+@@ -0,0 +1,49 @@
++.\"/* 
++.\" * All rights reserved
++.\" * Copyright (C) 2009-2014 Red Hat, Inc.
++.\" * Authors: Jaroslav Škarvada
++.\" *
++.\" * This program is free software; you can redistribute it and/or
++.\" * modify it under the terms of the GNU General Public License
++.\" * as published by the Free Software Foundation; either version 2
++.\" * of the License, or (at your option) any later version.
++.\" *
++.\" * This program is distributed in the hope that it will be useful,
++.\" * but WITHOUT ANY WARRANTY; without even the implied warranty of
++.\" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++.\" * GNU General Public License for more details.
++.\" *
++.\" * You should have received a copy of the GNU General Public License
++.\" * along with this program; if not, write to the Free Software
++.\" * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++.\" */
++.\" 
++.TH TUNED_PROFILES_SAP "7" "23 Sep 2014" "Fedora Power Management SIG" "tuned"
++.SH NAME
++tuned\-profiles\-sap - description of profiles provided for the SAP NetWeaver
++
++.SH DESCRIPTION
++These profiles provides performance optimizations for the SAP NetWeaver applications.
++
++.SH PROFILES
++The following profiles are provided:
++
++.TP
++.BI "sap\-netweaver"
++A performance optimized profile for the SAP NetWeaver applications.
++It is based on throughput\-performance profile. It additionally tunes sysctl
++settings regarding shared memory, semaphores and maximum number of memory map
++areas a process may have.
++
++.SH "FILES"
++.NF
++/etc/tune\-profiles/*
++
++.SH "SEE ALSO"
++.BR tuned (8)
++.BR tuned\-adm (1)
++.BR tuned\-profiles (7)
++.BR tuned\-profiles\-sap\-hana (7)
++.SH AUTHOR
++.NF
++Jaroslav Škarvada <jskarvad@redhat.com>
+diff --git a/doc/tuned-profiles.7 b/doc/tuned-profiles.7
+new file mode 100644
+index 0000000..fce7048
+--- /dev/null
++++ b/doc/tuned-profiles.7
+@@ -0,0 +1,94 @@
++.\"/* 
++.\" * All rights reserved
++.\" * Copyright (C) 2009-2014 Red Hat, Inc.
++.\" * Authors: Marcela Mašláňová, Phil Knirsch, Jaroslav Škarvada
++.\" *
++.\" * This program is free software; you can redistribute it and/or
++.\" * modify it under the terms of the GNU General Public License
++.\" * as published by the Free Software Foundation; either version 2
++.\" * of the License, or (at your option) any later version.
++.\" *
++.\" * This program is distributed in the hope that it will be useful,
++.\" * but WITHOUT ANY WARRANTY; without even the implied warranty of
++.\" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++.\" * GNU General Public License for more details.
++.\" *
++.\" * You should have received a copy of the GNU General Public License
++.\" * along with this program; if not, write to the Free Software
++.\" * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++.\" */
++.\" 
++.TH TUNED_PROFILES "7" "23 Sep 2014" "Fedora Power Management SIG" "tuned"
++.SH NAME
++tuned\-profiles - description of basic tuned profiles
++
++.SH DESCRIPTION
++These are the base profiles which are mostly shipped in the base tuned
++package. They are targeted to various goals. Mostly they provide
++performance optimizations but there are also profiles targeted to
++low power consumption, low latency and others. You can mostly deduce the
++purpose of the profile by its name or you can see full description bellow.
++
++The power saving profiles contain settings that are typically not enabled by default as they will noticeably impact the latency/performance of your system as opposed to the power saving mechanisms we have enabled by default. On the other hand the performance profiles disable the additional power saving mechanisms of tuned and ktune as they would negatively impact the performance tuning, be it throughput or latency.
++
++.SH PREDEFINED PROFILES
++At the moment we're providing the following pre defined profiles:
++
++.TP
++.BI "default"
++This is the default powersaving profile. It is the lowest of the available profiles in regard to powersaving and only enables CPU and disk plugins of tuned. This is not the same as 'tuned-adm off', where tuned and ktune services are disabled.
++
++.TP
++.BI "desktop\-powersave"
++A powersaving profile directed at desktop systems. Enables ALPM powersaving for SATA host adapters as well as the CPU, ethernet and disk plugins of tuned.
++
++.TP
++.BI "server\-powersave"
++A powersaving profile directed at server systems. Enables ALPM powersaving for SATA host adapters, disables CD-ROM polling via hal and activates the CPU and disk plugins of tuned.
++
++.TP
++.BI "laptop\-ac\-powersave"
++Medium powersaving profile directed at laptops running on AC. Enables ALPM powersaving for SATA host adapters,  WiFi power saving as well as CPU, ethernet and disk plugins of tuned.
++
++.TP
++.BI "laptop\-battery\-powersave"
++Strong powersaving profile directed at laptops running on battery. It activates all power saving mechanisms from the previous profiles plus it enables multi core power savings scheduler for low wakeup systems and makes sure the ondemand governor is active and the AC97 audio power saving is enabled.  This profile can be used for any kind of system, not only laptops on battery power in order to save the maximum amount of power. The tradeoff for this profile is a noticeable impact on performance, specifically latency of disk and network IO. 
++
++.TP
++.BI "spindown\-disk"
++Strong powersaving profile enabling aggresive disk spin-down. Disk writeback values are increased and disk swappines is lowered. CD drives polling and log syncing is disabled. All partitions are remounted with 'noatime' option. All tuned plugins are disabled.
++
++.TP
++.BI "throughput\-performance"
++Server profile for typical throughput performance tuning. Disables tuned and ktune power saving mechanisms and enables sysctl settings that improve the throughput performance of your disk and network IO and switches to the deadline scheduler. CPU governor is set to performance.
++
++.TP
++.BI "latency\-performance"
++Server profile for typical latency performance tuning. Disables tuned and ktune power saving mechanisms and enables deadline IO scheduler. CPU governor is set to performance.
++
++.TP
++.BI "enterprise\-storage"
++Server profile for high disk throughput performace tuning. Disables tuned and ktune power saving mechanisms and enables deadline IO scheduler. Enables hugepages and disables disk barriers. Disk readahead values are increased. CPU governor is set to performance.
++
++.TP
++.BI "virtual\-guest"
++Profile optimized for virtual guests based on enterprise-storage profile. It additionally decreases virtual memory swapiness.
++
++.TP
++.BI "virtual\-host"
++Profile optimized for virtual hosts based on enterprise-storage profile. It additionally decreases virtual memory swapiness and enables more aggresive writeback of dirty pages.
++
++.SH "FILES"
++.NF
++/etc/tune\-profiles/*
++
++.SH "SEE ALSO"
++.BR tuned (8)
++.BR tuned\-adm (1)
++.BR tuned\-profiles\-sap (7)
++.BR tuned\-profiles\-sap\-hana (7)
++.SH AUTHOR
++.NF
++Marcela Mašláňová <mmaslano@redhat.com>
++Phil Knirsch <pknirsch@redhat.com>
++Jaroslav Škarvada <jskarvad@redhat.com>
 diff --git a/ktune/README.ktune b/ktune/README.ktune
-index b5a1772..fad2e69 100644
+index 49358f4..16021c7 100644
 --- a/ktune/README.ktune
 +++ b/ktune/README.ktune
 @@ -48,6 +48,7 @@ service is enabled and started, it will use the configuration options from
@@ -40,7 +365,7 @@ index b5a1772..fad2e69 100644
  ELEVATOR is the I/O scheduler, ktune will set for ELEVATOR_TUNE_DEVS. If you
  want to disable the setting of the I/O scheduler, just comment out the ELEVATOR
 diff --git a/ktune/ktune.init b/ktune/ktune.init
-index c3aa18d..46afbdc 100644
+index 76df2da..19ce0f1 100644
 --- a/ktune/ktune.init
 +++ b/ktune/ktune.init
 @@ -55,9 +55,15 @@ $(LANG=C /bin/ls -1 /etc/ktune.d/*.conf 2>/dev/null)
@@ -117,11 +442,299 @@ index c3aa18d..46afbdc 100644
  	echo $"Applying ktune sysctl settings:"
  
  	# Apply ktune files.
-diff --git a/tune-profiles/sap/ktune.sh b/tune-profiles/sap/ktune.sh
+diff --git a/tune-profiles/sap-hana-vmware/ktune.sh b/tune-profiles/sap-hana-vmware/ktune.sh
+new file mode 100755
+index 0000000..1a987a9
+--- /dev/null
++++ b/tune-profiles/sap-hana-vmware/ktune.sh
+@@ -0,0 +1,23 @@
++#!/bin/sh
++
++. /etc/tune-profiles/functions
++
++start() {
++	set_cpu_governor performance
++	/usr/libexec/tuned/pmqos-static.py cpu_dma_latency=1
++	multiply_disk_readahead 4
++	ethtool -K eth0 lro off
++	set_transparent_hugepages never
++	return 0
++}
++
++stop() {
++	restore_cpu_governor
++	/usr/libexec/tuned/pmqos-static.py disable
++	restore_transparent_hugepages
++	restore_disk_readahead
++	ethtool -K eth0 lro on
++	return 0
++}
++
++process $@
+diff --git a/tune-profiles/sap-hana-vmware/ktune.sysconfig b/tune-profiles/sap-hana-vmware/ktune.sysconfig
+new file mode 100644
+index 0000000..f0f08e7
+--- /dev/null
++++ b/tune-profiles/sap-hana-vmware/ktune.sysconfig
+@@ -0,0 +1,27 @@
++# ktune service configuration
++
++# This is the ktune sysctl file.  You can comment this out to prevent ktune
++# from applying its sysctl settings.
++#SYSCTL="/etc/sysctl.ktune"
++
++# Use *.conf files in the ktune configuration directory /etc/ktune.d.
++#   Value: yes|no,  default: yes
++# It is useful if you want to load settings from additional files. Set this to
++# no if you to prevent ktune from using these additional files.
++USE_KTUNE_D="yes"
++
++# This is the custom sysctl configuration file.  Any settings in this file will
++# be applied after the ktune settings, overriding them.  Comment this out to
++# use only the ktune settings.
++SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++
++# This is the I/O scheduler ktune will use.  This will *not* override anything
++# explicitly set on the kernel command line, nor will it change the scheduler
++# for any block device that is using a non-default scheduler when ktune starts.
++# You should probably leave this on "deadline", but "as", "cfq", and "noop" are
++# also legal values.  Comment this out to prevent ktune from changing I/O
++# scheduler settings.
++ELEVATOR="noop"
++
++# These are the devices, that should be tuned with the ELEVATOR
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/sap-hana-vmware/sysctl.ktune b/tune-profiles/sap-hana-vmware/sysctl.ktune
+new file mode 100644
+index 0000000..8d09200
+--- /dev/null
++++ b/tune-profiles/sap-hana-vmware/sysctl.ktune
+@@ -0,0 +1,44 @@
++# ktune sysctl settings for rhel6 servers with enterprise-class
++# storage, maximizing i/o throughput
++#
++# Minimal preemption granularity for CPU-bound tasks:
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++kernel.sched_min_granularity_ns = 10000000
++
++# SCHED_OTHER wake-up granularity.
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++#
++# This option delays the preemption effects of decoupled workloads
++# and reduces their over-scheduling. Synchronous workloads will still
++# have immediate wakeup/sleep latencies.
++kernel.sched_wakeup_granularity_ns = 15000000
++
++# Filesystem I/O is usually much more efficient than swapping, so try to keep
++# swapping low.  It's usually safe to go even lower than this on systems with
++# server-grade storage.
++vm.swappiness = 30
++
++# If a workload mostly uses anonymous memory and it hits this limit, the entire
++# working set is buffered for I/O, and any more write buffering would require
++# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
++# that mostly use file mappings may be able to use even higher values.
++#
++# The generator of dirty data starts writeback at this percentage (system default
++# is 20%)
++vm.dirty_ratio = 40
++
++# Start background writeback (via writeback threads) at this percentage (system
++# default is 10%)
++#vm.dirty_background_ratio = 15
++
++# PID allocation wrap value.  When the kernel's next PID value
++# reaches this value, it wraps back to a minimum PID value.
++# PIDs of value pid_max or larger are not allocated.
++#
++# A suggested value for pid_max is 1024 * <# of cpu cores/threads in system>
++# e.g., a box with 32 cpus, the default of 32768 is reasonable, for 64 cpus,
++# 65536, for 4096 cpus, 4194304 (which is the upper limit possible).
++#kernel.pid_max = 65536
++
++# This is for HANA deployment
++kernel.sem = 1250 256000 100 8192
+diff --git a/tune-profiles/sap-hana-vmware/tuned.conf b/tune-profiles/sap-hana-vmware/tuned.conf
+new file mode 100644
+index 0000000..6c574fc
+--- /dev/null
++++ b/tune-profiles/sap-hana-vmware/tuned.conf
+@@ -0,0 +1,21 @@
++# disable tuned
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False
+diff --git a/tune-profiles/sap-hana/ktune.sh b/tune-profiles/sap-hana/ktune.sh
+new file mode 100755
+index 0000000..59a11c4
+--- /dev/null
++++ b/tune-profiles/sap-hana/ktune.sh
+@@ -0,0 +1,26 @@
++#!/bin/sh
++
++# RHEL for SAP HANA ktune script
++# based on the enterprise-storage profile
++
++. /etc/tune-profiles/functions
++
++start() {
++	set_cpu_governor performance
++	/usr/libexec/tuned/pmqos-static.py cpu_dma_latency=1
++	set_transparent_hugepages never
++	multiply_disk_readahead 4
++
++	return 0
++}
++
++stop() {
++	restore_cpu_governor
++	/usr/libexec/tuned/pmqos-static.py disable
++	restore_transparent_hugepages
++	restore_disk_readahead
++
++	return 0
++}
++
++process $@
+diff --git a/tune-profiles/sap-hana/ktune.sysconfig b/tune-profiles/sap-hana/ktune.sysconfig
+new file mode 100644
+index 0000000..7b38eb7
+--- /dev/null
++++ b/tune-profiles/sap-hana/ktune.sysconfig
+@@ -0,0 +1,30 @@
++# RHEL for SAP HANA ktune sysctl settings
++# based on the enterprise-storage profile
++
++# ktune service configuration
++
++# This is the ktune sysctl file.  You can comment this out to prevent ktune
++# from applying its sysctl settings.
++#SYSCTL="/etc/sysctl.ktune"
++
++# Use *.conf files in the ktune configuration directory /etc/ktune.d.
++#   Value: yes|no,  default: yes
++# It is useful if you want to load settings from additional files. Set this to
++# no if you to prevent ktune from using these additional files.
++USE_KTUNE_D="yes"
++
++# This is the custom sysctl configuration file.  Any settings in this file will
++# be applied after the ktune settings, overriding them.  Comment this out to
++# use only the ktune settings.
++SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++
++# This is the I/O scheduler ktune will use.  This will *not* override anything
++# explicitly set on the kernel command line, nor will it change the scheduler
++# for any block device that is using a non-default scheduler when ktune starts.
++# You should probably leave this on "deadline", but "as", "cfq", and "noop" are
++# also legal values.  Comment this out to prevent ktune from changing I/O
++# scheduler settings.
++ELEVATOR="deadline"
++
++# These are the devices, that should be tuned with the ELEVATOR
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/sap-hana/sysctl.ktune b/tune-profiles/sap-hana/sysctl.ktune
+new file mode 100644
+index 0000000..1999f90
+--- /dev/null
++++ b/tune-profiles/sap-hana/sysctl.ktune
+@@ -0,0 +1,47 @@
++# RHEL for SAP HANA ktune sysctl settings
++# based on the enterprise-storage profile
++
++# ktune sysctl settings for rhel6 servers with enterprise-class
++# storage, maximizing i/o throughput
++#
++# Minimal preemption granularity for CPU-bound tasks:
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++kernel.sched_min_granularity_ns = 10000000
++
++# SCHED_OTHER wake-up granularity.
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++#
++# This option delays the preemption effects of decoupled workloads
++# and reduces their over-scheduling. Synchronous workloads will still
++# have immediate wakeup/sleep latencies.
++kernel.sched_wakeup_granularity_ns = 15000000
++
++# Filesystem I/O is usually much more efficient than swapping, so try to keep
++# swapping low.  It's usually safe to go even lower than this on systems with
++# server-grade storage.
++# vm.swappiness = 30
++
++# If a workload mostly uses anonymous memory and it hits this limit, the entire
++# working set is buffered for I/O, and any more write buffering would require
++# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
++# that mostly use file mappings may be able to use even higher values.
++#
++# The generator of dirty data starts writeback at this percentage (system default
++# is 20%)
++vm.dirty_ratio = 40
++
++# Start background writeback (via writeback threads) at this percentage (system
++# default is 10%)
++#vm.dirty_background_ratio = 15
++
++# PID allocation wrap value.  When the kernel's next PID value
++# reaches this value, it wraps back to a minimum PID value.
++# PIDs of value pid_max or larger are not allocated.
++#
++# A suggested value for pid_max is 1024 * <# of cpu cores/threads in system>
++# e.g., a box with 32 cpus, the default of 32768 is reasonable, for 64 cpus,
++# 65536, for 4096 cpus, 4194304 (which is the upper limit possible).
++#kernel.pid_max = 65536
++
++# This is for HANA deployment
++kernel.sem = 1250 256000 100 8192
+diff --git a/tune-profiles/sap-hana/tuned.conf b/tune-profiles/sap-hana/tuned.conf
+new file mode 100644
+index 0000000..d915459
+--- /dev/null
++++ b/tune-profiles/sap-hana/tuned.conf
+@@ -0,0 +1,22 @@
++# RHEL for SAP HANA tuned profile
++# based on the enterprise-storage profile
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False
+diff --git a/tune-profiles/sap-netweaver/ktune.sh b/tune-profiles/sap-netweaver/ktune.sh
 new file mode 100644
 index 0000000..8e84bfe
 --- /dev/null
-+++ b/tune-profiles/sap/ktune.sh
++++ b/tune-profiles/sap-netweaver/ktune.sh
 @@ -0,0 +1,26 @@
 +#!/bin/sh
 +
@@ -149,11 +762,11 @@ index 0000000..8e84bfe
 +}
 +
 +process $@
-diff --git a/tune-profiles/sap/ktune.sysconfig b/tune-profiles/sap/ktune.sysconfig
+diff --git a/tune-profiles/sap-netweaver/ktune.sysconfig b/tune-profiles/sap-netweaver/ktune.sysconfig
 new file mode 100644
-index 0000000..7502b3f
+index 0000000..0950bfb
 --- /dev/null
-+++ b/tune-profiles/sap/ktune.sysconfig
++++ b/tune-profiles/sap-netweaver/ktune.sysconfig
 @@ -0,0 +1,42 @@
 +# SAP ktune service configuration
 +# based on the enterprise storage profile
@@ -197,11 +810,11 @@ index 0000000..7502b3f
 +SAP_SHMALL=$(( $SAP_VIRT_MEMORY_TOTAL * 1024 * 1024 / 4 ))
 +# kernel.shmmax is in Bytes; minimum 20 GB (SAP Note 941735)
 +SAP_SHMMAX=$(( $SAP_VIRT_MEMORY_TOTAL * 1024 * 1024 * 1024 ))
-diff --git a/tune-profiles/sap/sysctl.ktune b/tune-profiles/sap/sysctl.ktune
+diff --git a/tune-profiles/sap-netweaver/sysctl.ktune b/tune-profiles/sap-netweaver/sysctl.ktune
 new file mode 100644
 index 0000000..d1a4ec9
 --- /dev/null
-+++ b/tune-profiles/sap/sysctl.ktune
++++ b/tune-profiles/sap-netweaver/sysctl.ktune
 @@ -0,0 +1,32 @@
 +# SAP ktune sysctl settings
 +# based on the enterprise-storage profile
@@ -235,11 +848,11 @@ index 0000000..d1a4ec9
 +kernel.shmmax = >$SAP_SHMMAX
 +kernel.sem = 1250 256000 100 8192
 +vm.max_map_count = 1000000
-diff --git a/tune-profiles/sap/tuned.conf b/tune-profiles/sap/tuned.conf
+diff --git a/tune-profiles/sap-netweaver/tuned.conf b/tune-profiles/sap-netweaver/tuned.conf
 new file mode 100644
 index 0000000..b4b3bfb
 --- /dev/null
-+++ b/tune-profiles/sap/tuned.conf
++++ b/tune-profiles/sap-netweaver/tuned.conf
 @@ -0,0 +1,22 @@
 +# SAP tuned profile
 +# based on the enterprise-storage profile
@@ -263,3 +876,6 @@ index 0000000..b4b3bfb
 +
 +[CPUTuning]
 +enabled=False
+-- 
+1.9.3
+
