@@ -1,0 +1,12 @@
+diff -up tuned-0.2.19/tune-profiles/latency-performance/ktune.sh.orig tuned-0.2.19/tune-profiles/latency-performance/ktune.sh
+--- tuned-0.2.19/tune-profiles/latency-performance/ktune.sh.orig	2013-07-22 19:06:22.000000000 +0200
++++ tuned-0.2.19/tune-profiles/latency-performance/ktune.sh	2013-07-23 09:56:30.076379302 +0200
+@@ -4,7 +4,7 @@
+ 
+ start() {
+ 	set_cpu_governor performance
+-	/usr/libexec/tuned/pmqos-static.py cpu_dma_latency=0
++	/usr/libexec/tuned/pmqos-static.py cpu_dma_latency=1
+ 	set_transparent_hugepages never
+ 
+ 	return 0

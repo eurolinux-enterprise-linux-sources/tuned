@@ -1,0 +1,27 @@
+commit ccecd6fa7d4ed038ad72ac46eb76ef89aaefb3c8
+Author: Phil Knirsch <pknirsch@redhat.com>
+Date:   Tue Jun 21 13:46:01 2011 +0200
+
+    Incorrect handling of stdin/stdout/stderr during daemon creation
+    
+    Resolves: #695480
+    Signed-off-by: Jan Vcelak <jvcelak@redhat.com>
+
+diff --git a/tuned b/tuned
+index 98948cb..14c4410 100755
+--- a/tuned
++++ b/tuned
+@@ -60,7 +60,12 @@ def daemonize():
+ 		log.cricital("Cannot fork: %s", str(e))
+ 		sys.exit(1)
+ 
+-	sys.stdout = sys.stderr = open("/dev/null", 'a+')
++	si = file('/dev/null', 'r')
++	so = file('/dev/null', 'a+')
++	se = file('/dev/null', 'a+', 0)
++	os.dup2(si.fileno(), sys.stdin.fileno())
++	os.dup2(so.fileno(), sys.stdout.fileno())
++	os.dup2(se.fileno(), sys.stderr.fileno())
+ 
+ if __name__ == "__main__":
+ 	try:

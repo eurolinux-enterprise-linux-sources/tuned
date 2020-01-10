@@ -1,0 +1,24 @@
+From 1083b96e230f97034337d21befa517e0e8b67770 Mon Sep 17 00:00:00 2001
+From: Jaroslav Škarvada <jskarvad@redhat.com>
+Date: Wed, 27 Feb 2013 16:32:28 +0000
+Subject: Fixed permissions of /var/run/tuned/pmqos-static.pid
+
+  Resolves: rhbz#915628
+---
+diff -up tuned-0.2.19/libexec/pmqos-static.py.orig tuned-0.2.19/libexec/pmqos-static.py
+--- tuned-0.2.19/libexec/pmqos-static.py.orig	2013-02-27 11:46:50.000000000 +0100
++++ tuned-0.2.19/libexec/pmqos-static.py	2013-02-27 11:51:46.658891613 +0100
+@@ -47,8 +47,9 @@ def close_fds():
+ 	os.dup2(s_err.fileno(), sys.stderr.fileno())
+ 
+ def write_pidfile():
+-	with open(PIDFILE, "w") as pidfile:
+-		pidfile.write("%s" % os.getpid())
++	f = os.open(PIDFILE, os.O_CREAT | os.O_TRUNC | os.O_WRONLY, 0644)
++	os.write(f, "%d" % os.getpid())
++	os.close(f)
+ 
+ def daemonize():
+ 	do_fork()
+--
+cgit v0.9.1

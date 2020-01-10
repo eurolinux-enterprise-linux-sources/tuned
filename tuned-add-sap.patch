@@ -1,0 +1,265 @@
+diff --git a/doc/tuned-adm.1 b/doc/tuned-adm.1
+index 246f12b..c51ada3 100644
+--- a/doc/tuned-adm.1
++++ b/doc/tuned-adm.1
+@@ -101,6 +101,10 @@ Profile optimized for virtual guests based on enterprise-storage profile. It add
+ .BI "virtual-host"
+ Profile optimized for virtual hosts based on enterprise-storage profile. It additionally decreases virtual memory swapiness and enables more aggresive writeback of dirty pages.
+ 
++.TP
++.BI "sap"
++Profile optimized for the best performance of SAP software. It is based on enterprise-storage profile. It additionally tunes sysctl settings regarding shared memory, semaphores and maximum number of memory map areas a process may have.
++
+ .SH "FILES"
+ .nf
+ /etc/tune-profiles/*
+diff --git a/ktune/README.ktune b/ktune/README.ktune
+index b5a1772..fad2e69 100644
+--- a/ktune/README.ktune
++++ b/ktune/README.ktune
+@@ -48,6 +48,7 @@ service is enabled and started, it will use the configuration options from
+ 
+     SYSCTL="/etc/sysctl.ktune"
+     USE_KTUNE_D="yes"
++    SYSCTL_PRE="/etc/sysctl.d/* /etc/sysctl.conf"
+     SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
+     ELEVATOR="deadline"
+     ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
+@@ -60,7 +61,12 @@ profiles from the /etc/ktune.d directory. A profile has to have the extension
+ .conf to be used. If there is an additional file with the same name, but the
+ extension .sh it will be used as a profile script.
+ 
+-SYSCTL_POST references the system wide sysctl file for customer settings.
++SYSCTL_PRE references the system wide sysctl file for customer settings that
++is loaded before the ktune tunings. The tunings from this file may be
++overridden by ktune settings. Most profile don't use this option.
++
++SYSCTL_POST references the system wide sysctl file for customer settings that
++is loaded after the ktune tunings. This may override the ktune settings.
+ 
+ ELEVATOR is the I/O scheduler, ktune will set for ELEVATOR_TUNE_DEVS. If you
+ want to disable the setting of the I/O scheduler, just comment out the ELEVATOR
+diff --git a/ktune/ktune.init b/ktune/ktune.init
+index c3aa18d..46afbdc 100644
+--- a/ktune/ktune.init
++++ b/ktune/ktune.init
+@@ -55,9 +55,15 @@ $(LANG=C /bin/ls -1 /etc/ktune.d/*.conf 2>/dev/null)
+ EOF
+ fi
+ 
++function is_int
++{
++  [ ! -z "${1##*[^0-9]*}" ]
++}
++
+ load_file() {
+     local file=$1
+     local save=$2
++    local curr_value
+ 
+     ret_s=0
+     errors=
+@@ -69,19 +75,34 @@ load_file() {
+ 	key=$(echo $line | awk '{ match($0,"[ \t]*=[ \t]*") && $0=substr($0,1,RSTART-1); print $0}')
+ 	value=$(echo $line | awk '/=/ { match($0,"[ \t]*=[ \t]*"); $0=substr($0,RSTART+RLENGTH); print $0}')
+ 
++	curr_value=""
++	if [ "${value:0:1}" = '>' ]; then
++	    value=${value:1}
++	    curr_value=$($SYSCTL_GET -n "$key")
++	fi
++
++	if [ "${value:0:1}" = '$' ]; then
++	    value=${value:1}
++	    value=${!value}
++	fi
++
++	is_int "$curr_value" && is_int "$value" && [ "$value" -lt "$curr_value" ] && value="$curr_value"
++
+ 	[ $save -ne 0 ] && save_value=$($SYSCTL_GET "$key")
+ 
+ 	setting=$key
+-	[ -n "$value" ] && setting+="=${value}"
++	if [ "$value" ]; then
++	    [ -n "$value" ] && setting+="=${value}"
+ 
+-	error="$($SYSCTL_SET "${setting}" 2>&1)"
+-	ret=$?
+-	if [ $save -ne 0 -a $ret -eq 0 ] && ! grep -q "^${key} =" $SAVE_FILE 2>/dev/null; then
+-	    echo "$save_value" >> "$SAVE_FILE"
+-	fi
+-	[ -n "$error" ] && errors+="${error}\n"
++	    error="$($SYSCTL_SET "${setting}" 2>&1)"
++	    ret=$?
++	    if [ $save -ne 0 -a $ret -eq 0 ] && ! grep -q "^${key} =" $SAVE_FILE 2>/dev/null; then
++	        echo "$save_value" >> "$SAVE_FILE"
++	    fi
++	    [ -n "$error" ] && errors+="${error}\n"
+ 
+-	let ret_s+=$ret
++	    let ret_s+=$ret
++	fi
+     done < "$file"
+ 
+     if [ $ret_s -eq 0 ]; then
+@@ -114,6 +135,14 @@ load_sysctl() {
+     /bin/rm -f "$SAVE_FILE"
+ 
+     if [ ${#KTUNE_FILES[@]} -gt 0 ]; then
++        # Apply general sysctl settings beforehand
++	for f in $SYSCTL_PRE; do
++	    if [ -r "$f" ]; then
++		echo $"Applying sysctl settings from $f"
++		sysctl -e -p "$f" >/dev/null 2>&1
++	    fi
++	done
++
+ 	echo $"Applying ktune sysctl settings:"
+ 
+ 	# Apply ktune files.
+diff --git a/tune-profiles/sap/ktune.sh b/tune-profiles/sap/ktune.sh
+new file mode 100644
+index 0000000..8e84bfe
+--- /dev/null
++++ b/tune-profiles/sap/ktune.sh
+@@ -0,0 +1,26 @@
++#!/bin/sh
++
++# SAP ktune script
++# based on the enterprise-storage profile
++
++. /etc/tune-profiles/functions
++
++start() {
++	set_cpu_governor performance
++	set_transparent_hugepages always
++	disable_disk_barriers
++	multiply_disk_readahead 4
++
++	return 0
++}
++
++stop() {
++	restore_cpu_governor
++	restore_transparent_hugepages
++	enable_disk_barriers
++	restore_disk_readahead
++
++	return 0
++}
++
++process $@
+diff --git a/tune-profiles/sap/ktune.sysconfig b/tune-profiles/sap/ktune.sysconfig
+new file mode 100644
+index 0000000..7502b3f
+--- /dev/null
++++ b/tune-profiles/sap/ktune.sysconfig
+@@ -0,0 +1,42 @@
++# SAP ktune service configuration
++# based on the enterprise storage profile
++
++# This is the ktune sysctl file.  You can comment this out to prevent ktune
++# from applying its sysctl settings.
++SYSCTL="/etc/sysctl.ktune"
++
++# Use *.conf files in the ktune configuration directory /etc/ktune.d.
++#   Value: yes|no,  default: yes
++# It is useful if you want to load settings from additional files. Set this to
++# no if you to prevent ktune from using these additional files.
++USE_KTUNE_D="yes"
++
++# This is the custom sysctl configuration file. Any settings in this file will
++# be applied before the ktune settings, thus may be overridden by ktune.
++SYSCTL_PRE="/etc/sysctl.d/* /etc/sysctl.conf"
++
++# This is the custom sysctl configuration file. Any settings in this file will
++# be applied after the ktune settings, overriding them
++#SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++
++# This is the I/O scheduler ktune will use. This will *not* override anything
++# explicitly set on the kernel command line, nor will it change the scheduler
++# for any block device that is using a non-default scheduler when ktune starts.
++# You should probably leave this on "deadline", but "as", "cfq", and "noop" are
++# also legal values.  Comment this out to prevent ktune from changing I/O
++# scheduler settings.
++ELEVATOR="deadline"
++
++# These are the devices, that should be tuned with the ELEVATOR
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
++
++# The following lines are for autodetection of SAP settings
++SAP_MAIN_MEMORY_TOTAL=`awk '/MemTotal:/ {print $2}' /proc/meminfo`
++SAP_SWAP_SPACE_TOTAL=`awk '/SwapTotal:/ {print $2}' /proc/meminfo`
++# Rounding to full Gigabytes
++SAP_VIRT_MEMORY_TOTAL=$(( ( $SAP_MAIN_MEMORY_TOTAL + $SAP_SWAP_SPACE_TOTAL + 1048576 ) / 1048576 ))
++
++# kernel.shmall is in 4 KB pages; minimum 20 GB (SAP Note 941735)
++SAP_SHMALL=$(( $SAP_VIRT_MEMORY_TOTAL * 1024 * 1024 / 4 ))
++# kernel.shmmax is in Bytes; minimum 20 GB (SAP Note 941735)
++SAP_SHMMAX=$(( $SAP_VIRT_MEMORY_TOTAL * 1024 * 1024 * 1024 ))
+diff --git a/tune-profiles/sap/sysctl.ktune b/tune-profiles/sap/sysctl.ktune
+new file mode 100644
+index 0000000..d1a4ec9
+--- /dev/null
++++ b/tune-profiles/sap/sysctl.ktune
+@@ -0,0 +1,32 @@
++# SAP ktune sysctl settings
++# based on the enterprise-storage profile
++
++# ktune sysctl settings for rhel6 servers with enterprise-class
++# storage, maximizing i/o throughput
++#
++# Minimal preemption granularity for CPU-bound tasks:
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++kernel.sched_min_granularity_ns = 10000000
++
++# SCHED_OTHER wake-up granularity.
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++#
++# This option delays the preemption effects of decoupled workloads
++# and reduces their over-scheduling. Synchronous workloads will still
++# have immediate wakeup/sleep latencies.
++kernel.sched_wakeup_granularity_ns = 15000000
++
++# If a workload mostly uses anonymous memory and it hits this limit, the entire
++# working set is buffered for I/O, and any more write buffering would require
++# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
++# that mostly use file mappings may be able to use even higher values.
++#
++# The generator of dirty data starts writeback at this percentage (system default
++# is 20%)
++vm.dirty_ratio = 40
++
++# SAP specific tunings, SAP variables are preset in sysconfig
++kernel.shmall = >$SAP_SHMALL
++kernel.shmmax = >$SAP_SHMMAX
++kernel.sem = 1250 256000 100 8192
++vm.max_map_count = 1000000
+diff --git a/tune-profiles/sap/tuned.conf b/tune-profiles/sap/tuned.conf
+new file mode 100644
+index 0000000..b4b3bfb
+--- /dev/null
++++ b/tune-profiles/sap/tuned.conf
+@@ -0,0 +1,22 @@
++# SAP tuned profile
++# based on the enterprise-storage profile
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False

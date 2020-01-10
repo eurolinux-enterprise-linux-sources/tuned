@@ -1,0 +1,175 @@
+commit c53cf2a2ee780a44b7bcf8d38abc9aaf00d43d48
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date:   Thu Jan 13 14:24:21 2011 +0100
+
+    laptop-battery-powersave: ktune script typos
+
+diff --git a/tune-profiles/laptop-battery-powersave/ktune.sh b/tune-profiles/laptop-battery-powersave/ktune.sh
+index 74aee2b..c3b83ea 100755
+--- a/tune-profiles/laptop-battery-powersave/ktune.sh
++++ b/tune-profiles/laptop-battery-powersave/ktune.sh
+@@ -18,8 +18,8 @@ start() {
+ stop() {
+ 	set_disk_alpm max_performance
+ 	#disable_usb_autosuspend
+-	disable_cpu_multicore_power_savings
+-	restore_cpu_scheduler
++	disable_cpu_multicore_powersave
++	restore_cpu_governor
+ 	enable_snd_ac97_powersave
+ 	enable_cd_polling
+ 	disable_wifi_powersave
+
+commit f6d80577d32690715878030c1d29985a913fc444
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date:   Thu Jan 13 16:30:28 2011 +0100
+
+    disable tuned in performance and spindown profiles
+    
+    Not providing tuned.conf caused, that default or previous
+    tuned configuration was used instead of disabling tuned.
+
+diff --git a/tune-profiles/enterprise-storage/tuned.conf b/tune-profiles/enterprise-storage/tuned.conf
+new file mode 100644
+index 0000000..6c574fc
+--- /dev/null
++++ b/tune-profiles/enterprise-storage/tuned.conf
+@@ -0,0 +1,21 @@
++# disable tuned
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False
+diff --git a/tune-profiles/latency-performance/tuned.conf b/tune-profiles/latency-performance/tuned.conf
+new file mode 100644
+index 0000000..6c574fc
+--- /dev/null
++++ b/tune-profiles/latency-performance/tuned.conf
+@@ -0,0 +1,21 @@
++# disable tuned
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False
+diff --git a/tune-profiles/spindown-disk/tuned.conf b/tune-profiles/spindown-disk/tuned.conf
+index 0f925cf..6c574fc 100644
+--- a/tune-profiles/spindown-disk/tuned.conf
++++ b/tune-profiles/spindown-disk/tuned.conf
+@@ -1,57 +1,21 @@
+-#
+-# tuned configuration main service
+-#
++# disable tuned
+ 
+ [main]
+-# Interval for monitoring and tuning. Default is 10s.
+-# interval=10
+ 
+-#
+-# Disk monitoring section
+-#
+ [DiskMonitor]
+-# Enabled or disable the plugin. Default is True. Any other value
+-# disables it.
+ enabled=False
+ 
+-#
+-# Disk tuning section
+-#
+ [DiskTuning]
+-# Enabled or disable the plugin. Default is True. Any other value
+-# disables it.
+ enabled=False
+-hdparm=False
+-alpm=False
+ 
+-#
+-# Net monitoring section
+-#
+ [NetMonitor]
+-# Enabled or disable the plugin. Default is True. Any other value
+-# disables it.
+ enabled=False
+ 
+-#
+-# Net tuning section
+-#
+ [NetTuning]
+-# Enabled or disable the plugin. Default is True. Any other value
+-# disables it.
+ enabled=False
+ 
+-#
+-# CPU monitoring section
+-#
+ [CPUMonitor]
+-# Enabled or disable the plugin. Default is True. Any other value
+-# disables it.
+ enabled=False
+ 
+-#
+-# CPU tuning section
+-#
+ [CPUTuning]
+-# Enabled or disable the plugin. Default is True. Any other value
+-# disables it.
+ enabled=False
+diff --git a/tune-profiles/throughput-performance/tuned.conf b/tune-profiles/throughput-performance/tuned.conf
+new file mode 100644
+index 0000000..6c574fc
+--- /dev/null
++++ b/tune-profiles/throughput-performance/tuned.conf
+@@ -0,0 +1,21 @@
++# disable tuned
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False

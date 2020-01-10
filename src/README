@@ -1,0 +1,80 @@
+tuned: A simple daemon that performs monitoring and adaptive configuration
+       of devices in the system
+
+Copyright (C) 2008, 2009 Red Hat, Inc.
+Authors: Phil Knirsch
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+as published by the Free Software Foundation; either version 2
+of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+
+How to use
+----------
+
+After installing the package you simply need to start the tuned
+service either with system-config-services or from the
+commandline in a rootshell via:
+
+  service tuned start
+
+You can also automatically start it during system startup by
+switching it on via chkconfig:
+
+  chkconfig tuned on
+
+After that the daemon will run automatically and monitor the
+usage of various system components. Based on that information
+components will then be put into lower or higher power saving
+modes to adapt to the current usage. Currently plugins for CPU,
+ethernet network and and ATA harddisk devices are implemented.
+
+The config file /etc/tuned.conf contains several sections in
+INI style. There is always a "main" section which controls
+overall options of the daemon. Currently only 1 option
+is available:
+
+interval:  Interval for monitoring and tuning in seconds.
+           Default is 10.
+
+Each monitoring and tuning plugin has an own section then.
+Currently only 1 option for plugins is available:
+
+enabled: Enabled or disable the plugin. Default is True.
+         Any other value disables it.
+
+
+Monitoring/tuning plugins in detail
+-----------------------------------
+
+ - CPU
+   This plugin pair monitors the CPU usage of the system. If the current
+   workload of it is very low (uptime smaller than 0.2) it will switch
+   the system wide PM-QOS setting to 999 usec. If the load should get
+   higher again the PM-QOS latency will be lowered to 100 again. More details
+   about PM-QOS can be found here http://www.lesswatts.org/projects/power-qos/
+
+ - Disk
+   This plugin pair monitors usage of every disk in the system. For each
+   harddisk we check how long they have been in idle mode. The longer they are
+   the more we raise the power saving features for that drive and allow it to
+   actually spin down. As soon as it is being used we then reduce the power
+   savings for it and deactivate the automatic spin down again at higher
+   performance levels again.
+
+ - Net
+   This plugin pair monitors usage of network devices. At startup it checks
+   what speed the interfaces have. If at any time the utilization of any
+   interface falls below 5% of the possible maximum speed we then renegotiate
+   the speed of the interface at 100mbit. In case utilization goes up again
+   we renegotiate to the full speed once more.

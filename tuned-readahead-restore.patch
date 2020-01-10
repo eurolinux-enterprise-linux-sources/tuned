@@ -1,0 +1,91 @@
+functions: implement support for readahead restore
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Resolves: #905077
+
+---
+ tune-profiles/enterprise-storage/ktune.sh |  2 +-
+ tune-profiles/functions                   | 12 +++++++++++-
+ tune-profiles/virtual-guest/ktune.sh      |  2 +-
+ tune-profiles/virtual-host/ktune.sh       |  2 +-
+ 4 files changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/tune-profiles/enterprise-storage/ktune.sh b/tune-profiles/enterprise-storage/ktune.sh
+index 8106cf2..2046ece 100755
+--- a/tune-profiles/enterprise-storage/ktune.sh
++++ b/tune-profiles/enterprise-storage/ktune.sh
+@@ -15,7 +15,7 @@ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+ 	enable_disk_barriers
+-	multiply_disk_readahead 0.25
++	restore_disk_readahead
+ 
+ 	return 0
+ }
+diff --git a/tune-profiles/functions b/tune-profiles/functions
+index 52805af..e079a0c 100644
+--- a/tune-profiles/functions
++++ b/tune-profiles/functions
+@@ -43,9 +43,12 @@ set_disk_spindown() {
+ 	done
+ }
+ 
++DISK_READAHEAD_SAVE="/var/run/tuned/disk_readahead.save"
++
+ # usage: multiply_disk_readahead by
+ multiply_disk_readahead() {
+ 	by=$1
++	rm -f "$DISK_READAHEAD_SAVE"
+ 
+ 	# float multiplication not supported in bash
+ 	# bc might not be installed, python is available for sure
+@@ -54,11 +57,18 @@ multiply_disk_readahead() {
+ 		control="${disk}/queue/read_ahead_kb"
+ 		old=$(cat $control)
+ 		new=$(echo "print int($old*$by)" | python)
+-
++		echo "echo $old > $control" >> "$DISK_READAHEAD_SAVE" 2>/dev/null
+ 		(echo $new > $control) &>/dev/null
+ 	done
+ }
+ 
++restore_disk_readahead() {
++	if [ -r "$DISK_READAHEAD_SAVE" ]; then
++		/bin/sh "$DISK_READAHEAD_SAVE" &>/dev/null
++		rm -f "$DISK_READAHEAD_SAVE"
++	fi
++}
++
+ # usage: remount_disk options partition1 partition2 ...
+ remount_partitions() {
+ 	options=$1
+diff --git a/tune-profiles/virtual-guest/ktune.sh b/tune-profiles/virtual-guest/ktune.sh
+index f562ae3..d06776f 100755
+--- a/tune-profiles/virtual-guest/ktune.sh
++++ b/tune-profiles/virtual-guest/ktune.sh
+@@ -13,7 +13,7 @@ start() {
+ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+-	multiply_disk_readahead 0.25
++	restore_disk_readahead
+ 
+ 	return 0
+ }
+diff --git a/tune-profiles/virtual-host/ktune.sh b/tune-profiles/virtual-host/ktune.sh
+index 8106cf2..2046ece 100755
+--- a/tune-profiles/virtual-host/ktune.sh
++++ b/tune-profiles/virtual-host/ktune.sh
+@@ -15,7 +15,7 @@ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+ 	enable_disk_barriers
+-	multiply_disk_readahead 0.25
++	restore_disk_readahead
+ 
+ 	return 0
+ }
+-- 
+1.8.1
+

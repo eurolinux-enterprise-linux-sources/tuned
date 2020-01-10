@@ -1,0 +1,233 @@
+Resolves poor ping latency in latency-performance profile by adding pmqos-static.py script.
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Upstream commits: edc85cb e60e950 bab72a1 31639fd 8c034fe 69fdbcf
+Resolves: #714180
+
+diff --git a/Makefile b/Makefile
+index 6eb7ee6..05307f1 100644
+--- a/Makefile
++++ b/Makefile
+@@ -7,7 +7,7 @@ DESTDIR = /
+ MANDIR = /usr/share/man/
+ GITTAG = v$(VERSION)
+ 
+-DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune udev
++DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune udev libexec
+ FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned_nettool.py tuned_logging.py tuned.bash tuned.tmpfiles
+ FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes doc/diskdevstat.8 doc/netdevstat.8 doc/scomes.8 doc/varnetload.8
+ FILES_examples = ktune/sysctl.ktune
+@@ -17,6 +17,7 @@ FILES_monitorplugins = monitorplugins/cpu.py monitorplugins/disk.py monitorplugi
+ FILES_ktune = ktune/ktune.init ktune/ktune.sysconfig ktune/README.ktune
+ FILES_udev_rules = udev/80-tuned-iosched.rules udev/80-tuned-mpath-iosched.rules
+ FILES_udev_scripts = udev/tuned-mpath-iosched
++FILES_libexec = libexec/pmqos-static.py
+ DOCS = AUTHORS ChangeLog COPYING INSTALL NEWS README
+ 
+ DEFAULT_PROFILE = default
+@@ -38,6 +39,7 @@ archive:
+ 	cp $(FILES_monitorplugins) $(VERSIONED_NAME)/monitorplugins
+ 	cp $(FILES_ktune) $(VERSIONED_NAME)/ktune
+ 	cp $(FILES_udev_rules) $(FILES_udev_scripts) $(VERSIONED_NAME)/udev
++	cp $(FILES_libexec) $(VERSIONED_NAME)/libexec
+ 	cp -a tune-profiles $(VERSIONED_NAME)/tune-profiles
+ 
+ 	tar cjf $(VERSIONED_NAME).tar.bz2 $(VERSIONED_NAME)
+@@ -151,6 +153,12 @@ install:
+ 		install -m 0755 $$file $(DESTDIR)/lib/udev/; \
+ 	done
+ 
++	# Install libexec scripts
++	install -m 0755 -d $(DESTDIR)/usr/libexec/tuned
++	for file in $(FILES_libexec); do \
++		install -m 0755 $$file $(DESTDIR)/usr/libexec/tuned; \
++	done
++
+ changelog:
+ 	git log > ChangeLog
+ 
+diff --git a/libexec/pmqos-static.py b/libexec/pmqos-static.py
+new file mode 100644
+index 0000000..2850c19
+--- /dev/null
++++ b/libexec/pmqos-static.py
+@@ -0,0 +1,157 @@
++#!/usr/bin/python
++#
++# pmqos-static.py: Simple daemon for setting static PM QoS values. It is a part
++#                  of 'tuned' and it should not be called manually.
++#
++# Copyright (C) 2011 Red Hat, Inc.
++# Authors: Jan Vcelak <jvcelak@redhat.com>
++#
++# This program is free software; you can redistribute it and/or
++# modify it under the terms of the GNU General Public License
++# as published by the Free Software Foundation; either version 2
++# of the License, or (at your option) any later version.
++#
++# This program is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with this program; if not, write to the Free Software
++# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
++#
++
++import os
++import signal
++import struct
++import sys
++import time
++
++# Used interface is described in Linux kernel documentation:
++# Documentation/power/pm_qos_interface.txt
++
++ALLOWED_INTERFACES = [ "cpu_dma_latency", "network_latency", "network_throughput" ]
++PIDFILE = "/var/run/tuned/pmqos-static.pid"
++
++def do_fork():
++	pid = os.fork()
++	if pid > 0:
++		sys.exit(0)
++
++def close_fds():
++	s_in = file('/dev/null', 'r')
++	s_out = file('/dev/null', 'a+')
++	s_err = file('/dev/null', 'a+', 0)
++	os.dup2(s_in.fileno(), sys.stdin.fileno())
++	os.dup2(s_out.fileno(), sys.stdout.fileno())
++	os.dup2(s_err.fileno(), sys.stderr.fileno())
++
++def write_pidfile():
++	with open(PIDFILE, "w") as pidfile:
++		pidfile.write("%s" % os.getpid())
++
++def daemonize():
++	do_fork()
++	os.chdir("/")
++	os.setsid()
++	os.umask(0)
++	do_fork()
++	close_fds()
++
++def set_pmqos(name, value):
++	filename = "/dev/%s" % name
++	bin_value = struct.pack("i", int(value))
++	fd = os.open(filename, os.O_WRONLY)
++	os.write(fd, bin_value)
++	return fd
++
++def sleep_forever():
++	while True:
++		time.sleep(86400)
++
++def sigterm_handler(signum, frame):
++	global pmqos_fds
++	if type(pmqos_fds) is list:
++		for fd in pmqos_fds:
++			os.close(fd)
++	sys.exit(0)
++
++def run_daemon(options):
++	try:
++		daemonize()
++		write_pidfile()
++		signal.signal(signal.SIGTERM, sigterm_handler)
++	except Exception, e:
++		print >>sys.stderr, "Cannot daemonize (%s)." % e
++		return False
++
++	global pmqos_fds
++	pmqos_fds = []
++
++	for (name, value) in options.items():
++		try:
++			new_fd = set_pmqos(name, value)
++			pmqos_fds.append(new_fd)
++		except:
++			# we are daemonized
++			pass
++
++	if len(pmqos_fds) > 0:
++		sleep_forever()
++	else:
++		return False
++
++def kill_daemon(force = False):
++	try:
++		with open(PIDFILE, "r") as pidfile:
++			daemon_pid = int(pidfile.read())
++	except IOError, e:
++		if not force: print >>sys.stderr, "Cannot open PID file (%s)." % e
++		return False
++
++	try:
++		os.kill(daemon_pid, signal.SIGTERM)
++	except OSError, e:
++		if not force: print >>sys.stderr, "Cannot terminate the daemon (%s)." % e
++		return False
++
++	try:
++		os.unlink(PIDFILE)
++	except OSError, e:
++		if not force: print >>sys.stderr, "Cannot delete the PID file (%s)." % e
++		return False
++
++	return True
++
++if __name__ == "__main__":
++
++	disable = False
++	options = {}
++
++	for option in sys.argv[1:]:
++		if option == "disable":
++			disable = True
++			break
++
++		try:
++			(name, value) = option.split("=")
++		except ValueError:
++			name = option
++			value = None
++
++		if name in ALLOWED_INTERFACES and len(value) > 0:
++			options[name] = value
++		else:
++			print >>sys.stderr, "Invalid option (%s)." % option
++
++
++	if disable:
++		sys.exit(0 if kill_daemon() else 1)
++
++	if len(options) == 0:
++		print >>sys.stderr, "No options set. Not starting."
++		sys.exit(1)
++
++	kill_daemon(True)
++	run_daemon(options)
++	sys.exit(1)
+diff --git a/tune-profiles/latency-performance/ktune.sh b/tune-profiles/latency-performance/ktune.sh
+index afb12e2..de39c60 100755
+--- a/tune-profiles/latency-performance/ktune.sh
++++ b/tune-profiles/latency-performance/ktune.sh
+@@ -4,12 +4,14 @@
+ 
+ start() {
+ 	set_cpu_governor performance
++	/usr/libexec/tuned/pmqos-static.py cpu_dma_latency=0
+ 
+ 	return 0
+ }
+ 
+ stop() {
+ 	restore_cpu_governor
++	/usr/libexec/tuned/pmqos-static.py disable
+ 
+ 	return 0
+ }
+-- 
+1.7.11.4
+

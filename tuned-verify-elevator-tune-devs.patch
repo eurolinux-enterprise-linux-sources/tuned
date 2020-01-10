@@ -1,0 +1,34 @@
+Verify value of ELEVATOR_TUNE_DEVS in ktune.sysconfig to avoid data damage
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Upstream commit: 84536e5a5917282821a654cb5d47ac3505d9506e
+Resolves: #784308
+
+diff --git a/ktune/ktune.init b/ktune/ktune.init
+index 3e698fd..c3aa18d 100644
+--- a/ktune/ktune.init
++++ b/ktune/ktune.init
+@@ -28,7 +28,19 @@ SYSCTL_GET="/sbin/sysctl -e"
+ KERNEL_ELEVATOR="cfq"
+ /bin/fgrep -q 'elevator=' /proc/cmdline
+ CMDLINE_ELEVATOR=$?
+-SYS_BLOCK_SDX=$(eval LANG=C /bin/ls -1 ${ELEVATOR_TUNE_DEVS} 2>/dev/null)
++if [ -n "$ELEVATOR_TUNE_DEVS" ]; then
++	SYS_BLOCK_SDX=
++	for file in $(eval LANG=C /bin/ls -1d "${ELEVATOR_TUNE_DEVS}" 2>/dev/null); do
++		if ! expr match $(readlink -f "$file") '^/sys/.*/queue/scheduler$' >/dev/null; then
++			printf $"$0: '%s' is not a scheduler control file." "$file"
++			warning; echo
++		else
++			SYS_BLOCK_SDX="$SYS_BLOCK_SDX $file"
++		fi
++	done
++else
++	SYS_BLOCK_SDX=
++fi
+ 
+ declare -a KTUNE_FILES
+ if [ -r "$SYSCTL" ]; then
+-- 
+1.7.11.4
+

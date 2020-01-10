@@ -1,0 +1,118 @@
+fix: apply scheduler settings to vd* devices
+
+Resolves: #725497
+
+diff --git a/tune-profiles/desktop-powersave/ktune.sysconfig b/tune-profiles/desktop-powersave/ktune.sysconfig
+--- a/tune-profiles/desktop-powersave/ktune.sysconfig
++++ b/tune-profiles/desktop-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/enterprise-storage/ktune.sysconfig b/tune-profiles/enterprise-storage/ktune.sysconfig
+--- a/tune-profiles/enterprise-storage/ktune.sysconfig
++++ b/tune-profiles/enterprise-storage/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/functions b/tune-profiles/functions
+--- a/tune-profiles/functions
++++ b/tune-profiles/functions
+@@ -7,7 +7,8 @@
+ # DISK tuning
+ #
+ 
+-DISKS="$(command ls -d1 /dev/[sh]d*[a-z] 2>/dev/null)"
++DISKS_DEV="$(command ls -d1 /dev/[shv]d*[a-z] 2>/dev/null)"
++DISKS_SYS="$(command ls -d1 /sys/block/{sd,cciss,dm-,vd}* 2>/dev/null)"
+ 
+ # SATA Aggressive Link Power Management
+ # usage: set_disk_alpm policy
+@@ -29,7 +30,7 @@ set_disk_alpm() {
+ # usage: set_disk_apm level
+ set_disk_apm() {
+ 	level=$1
+-	for disk in $DISKS; do
++	for disk in $DISKS_DEV; do
+ 		hdparm -B $level $disk &>/dev/null
+ 	done
+ }
+@@ -37,7 +38,7 @@ set_disk_apm() {
+ # usage: set_disk_spindown level
+ set_disk_spindown() {
+ 	level=$1
+-	for disk in $DISKS; do
++	for disk in $DISKS_DEV; do
+ 		hdparm -S $level $disk &>/dev/null
+ 	done
+ }
+@@ -49,12 +50,12 @@ multiply_disk_readahead() {
+ 	# float multiplication not supported in bash
+ 	# bc might not be installed, python is available for sure
+ 
+-	readaheadvols=$(ls /sys/block/{sd,cciss}*/queue/read_ahead_kb 2>/dev/null)
+-	for d in $readaheadvols; do
+-		old=$(cat $d)
++	for disk in $DISKS_SYS; do
++		control="${disk}/queue/read_ahead_kb"
++		old=$(cat $control)
+ 		new=$(echo "print int($old*$by)" | python)
+ 
+-		(echo $new > $d) &>/dev/null
++		(echo $new > $control) &>/dev/null
+ 	done
+ }
+ 
+diff --git a/tune-profiles/laptop-ac-powersave/ktune.sysconfig b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+--- a/tune-profiles/laptop-ac-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/laptop-battery-powersave/ktune.sysconfig b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+--- a/tune-profiles/laptop-battery-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/latency-performance/ktune.sysconfig b/tune-profiles/latency-performance/ktune.sysconfig
+--- a/tune-profiles/latency-performance/ktune.sysconfig
++++ b/tune-profiles/latency-performance/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/server-powersave/ktune.sysconfig b/tune-profiles/server-powersave/ktune.sysconfig
+--- a/tune-profiles/server-powersave/ktune.sysconfig
++++ b/tune-profiles/server-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+diff --git a/tune-profiles/throughput-performance/ktune.sysconfig b/tune-profiles/throughput-performance/ktune.sysconfig
+--- a/tune-profiles/throughput-performance/ktune.sysconfig
++++ b/tune-profiles/throughput-performance/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd}*/queue/scheduler"
+-- 
+1.7.6.5
+

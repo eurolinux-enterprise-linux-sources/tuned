@@ -1,0 +1,116 @@
+tuned: restart ktune 10 seconds after last SIGUSR2 was received
+udev rules: ask tuned to restart ktune instead of restarting it directly
+
+When multiple devices are added into the system, udev restarted ktune
+daemon for each new device. This can cause races within ktune. This
+mechanism allows triggering just one ktune restart when multiple
+devices are inserted.
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Resolves: #904062, #905077
+
+---
+ Makefile                         |  2 +-
+ tuned                            | 17 ++++++++++++++++-
+ tuned.spec                       |  1 +
+ udev/81-tuned-add-disk.rules     |  2 +-
+ udev/tuned-request-ktune-restart |  9 +++++++++
+ 5 files changed, 28 insertions(+), 3 deletions(-)
+ create mode 100644 udev/tuned-request-ktune-restart
+
+diff --git a/Makefile b/Makefile
+index b662092..bcdb148 100644
+--- a/Makefile
++++ b/Makefile
+@@ -16,7 +16,7 @@ FILES_tuningplugins = tuningplugins/cpu.py tuningplugins/disk.py tuningplugins/n
+ FILES_monitorplugins = monitorplugins/cpu.py monitorplugins/disk.py monitorplugins/net.py monitorplugins/__init__.py
+ FILES_ktune = ktune/ktune.init ktune/ktune.sysconfig ktune/README.ktune
+ FILES_udev_rules = udev/80-tuned-iosched.rules udev/80-tuned-mpath-iosched.rules udev/81-tuned-add-disk.rules
+-FILES_udev_scripts = udev/tuned-mpath-iosched
++FILES_udev_scripts = udev/tuned-mpath-iosched udev/tuned-request-ktune-restart
+ FILES_libexec = libexec/pmqos-static.py
+ DOCS = AUTHORS ChangeLog COPYING INSTALL NEWS README
+ 
+diff --git a/tuned b/tuned
+index 14c4410..4c26296 100755
+--- a/tuned
++++ b/tuned
+@@ -21,11 +21,12 @@
+ # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+ #
+ 
+-import sys, os.path, getopt, atexit, signal
++import sys, os.path, getopt, atexit, signal, subprocess
+ 
+ TUNEDDIR = "/usr/share/tuned"
+ if not TUNEDDIR in sys.path:
+ 	sys.path.append(TUNEDDIR)
++KTUNE_DEFERRED_RESTART_TIME = 10
+ 
+ import logging, tuned_logging
+ log = logging.getLogger("tuned")
+@@ -67,6 +68,16 @@ def daemonize():
+ 	os.dup2(so.fileno(), sys.stdout.fileno())
+ 	os.dup2(se.fileno(), sys.stderr.fileno())
+ 
++def ktune_deferred_restart(signum, frame):
++	log.debug("received signal %d, ktune restart requested" % signum)
++	signal.alarm(KTUNE_DEFERRED_RESTART_TIME)
++
++def ktune_do_restart(signum, frame):
++	log.info("performing ktune conditional restart")
++	restart = subprocess.Popen(["service", "ktune", "condrestart"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
++	(stdout, stderr) = restart.communicate()
++	log.debug("exit status %d" % restart.returncode)
++
+ if __name__ == "__main__":
+ 	try:
+ 		opts, args = getopt.getopt(sys.argv[1:], "dc:D", ["daemon", "config=", "debug"])
+@@ -111,5 +122,9 @@ if __name__ == "__main__":
+ 	atexit.register(tuned.cleanup)
+ 	signal.signal(signal.SIGTERM, handler)
+ 
++	# handle ktune restart (triggered from udev rule)
++	signal.signal(signal.SIGALRM, ktune_do_restart)
++	signal.signal(signal.SIGUSR2, ktune_deferred_restart)
++
+ 	tuned.run()
+ 	tuned.cleanup()
+diff --git a/tuned.spec b/tuned.spec
+index 725d5fb..466d466 100644
+--- a/tuned.spec
++++ b/tuned.spec
+@@ -101,6 +101,7 @@ fi
+ %dir %{_localstatedir}/log/tuned
+ %dir %{_localstatedir}/run/tuned
+ %attr(0755,root,root) /lib/udev/tuned-mpath-iosched
++%attr(0755,root,root) /lib/udev/tuned-request-ktune-restart
+ /lib/udev/rules.d/*
+ %if %uses_tmpfs
+ %{_sysconfdir}/tmpfiles.d
+diff --git a/udev/81-tuned-add-disk.rules b/udev/81-tuned-add-disk.rules
+index deb8313..786b86b 100644
+--- a/udev/81-tuned-add-disk.rules
++++ b/udev/81-tuned-add-disk.rules
+@@ -1,2 +1,2 @@
+ # restart ktune daemon if a new block device is added
+-ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", RUN+="/sbin/service ktune condrestart"
++ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", RUN+="tuned-request-ktune-restart"
+diff --git a/udev/tuned-request-ktune-restart b/udev/tuned-request-ktune-restart
+new file mode 100644
+index 0000000..719078f
+--- /dev/null
++++ b/udev/tuned-request-ktune-restart
+@@ -0,0 +1,9 @@
++#!/bin/sh
++#
++# Inform tuned that ktune needs to be restarted eventually.
++#
++
++TUNED_PIDFILE=/var/run/tuned/tuned.pid
++
++[ -r "$TUNED_PIDFILE" ] && kill -USR2 $(<"$TUNED_PIDFILE") &>/dev/null
++exit 0
+-- 
+1.8.1
+

@@ -1,0 +1,188 @@
+Do not remount with 'nobarriers' option if the underlying device uses 'write back' cache.
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Upstream commit: 64b45e8a04b06c0f554c64b458c590c9904f7f5f
+Resolves: 801561
+
+---
+ tune-profiles/enterprise-storage/ktune.sh | 20 ++-----------
+ tune-profiles/functions                   | 47 +++++++++++++++++++++++++++++++
+ tune-profiles/virtual-guest/ktune.sh      | 20 ++-----------
+ tune-profiles/virtual-host/ktune.sh       | 20 ++-----------
+ 4 files changed, 53 insertions(+), 54 deletions(-)
+
+diff --git a/tune-profiles/enterprise-storage/ktune.sh b/tune-profiles/enterprise-storage/ktune.sh
+index 9664537..924d3ee 100755
+--- a/tune-profiles/enterprise-storage/ktune.sh
++++ b/tune-profiles/enterprise-storage/ktune.sh
+@@ -5,15 +5,7 @@
+ start() {
+ 	set_cpu_governor performance
+ 	enable_transparent_hugepages
+-
+-	# Find non-root and non-boot partitions, disable barriers on them
+-	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
+-	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
+-	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
+-
+-	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
+-	remount_partitions nobarrier $nobarriervols
+-
++	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
+ 	return 0
+@@ -22,15 +14,7 @@ start() {
+ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+-
+-	# Find non-root and non-boot partitions, re-enable barriers
+-	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
+-	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
+-	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
+-
+-	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
+-	remount_partitions barrier $nobarriervols
+-
++	enable_disk_barriers
+ 	multiply_disk_readahead 0.25
+ 
+ 	return 0
+diff --git a/tune-profiles/functions b/tune-profiles/functions
+index 0e9581b..fae9d53 100644
+--- a/tune-profiles/functions
++++ b/tune-profiles/functions
+@@ -69,6 +69,53 @@ remount_partitions() {
+ 	done
+ }
+ 
++_devices_no_write_back_cache() {
++	for device in $@; do
++		grep -q "write back" /sys/block/"$device"/device/scsi_disk/*/cache_type 2>/dev/null && return 1
++	done
++	return 0
++}
++
++_disk_barriers_remount() {
++	mount_options="$1"
++
++	lsblk -lno TYPE,KNAME,MOUNTPOINT | \
++	awk '
++		{ type=$1; name=$2; mountpoint=$3; }
++
++		(type == "disk") {
++				device=name
++				next
++		}
++
++		(mountpoint ~ /^\// && mountpoint != "/" && mountpoint != "/boot") {
++			mountpoints[mountpoint] = mountpoints[mountpoint] " " device
++		}
++
++		END {
++			for (mountpoint in mountpoints) {
++				print mountpoint, mountpoints[mountpoint]
++			}
++		}
++	' | \
++	while read mountpoint devices; do
++		if _devices_no_write_back_cache $devices; then
++			mount -o remount,"$mount_options" "$mountpoint"
++		fi
++	done
++}
++
++# remounts all non-root and non-boot partitions with nobarrier option
++# SCSI drives with write back cache are skipped
++disable_disk_barriers() {
++	_disk_barriers_remount nobarrier
++}
++
++# see: disable_disk_barriers
++enable_disk_barriers() {
++	_disk_barriers_remount barrier
++}
++
+ #
+ # CPU tuning
+ #
+diff --git a/tune-profiles/virtual-guest/ktune.sh b/tune-profiles/virtual-guest/ktune.sh
+index 9664537..924d3ee 100755
+--- a/tune-profiles/virtual-guest/ktune.sh
++++ b/tune-profiles/virtual-guest/ktune.sh
+@@ -5,15 +5,7 @@
+ start() {
+ 	set_cpu_governor performance
+ 	enable_transparent_hugepages
+-
+-	# Find non-root and non-boot partitions, disable barriers on them
+-	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
+-	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
+-	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
+-
+-	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
+-	remount_partitions nobarrier $nobarriervols
+-
++	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
+ 	return 0
+@@ -22,15 +14,7 @@ start() {
+ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+-
+-	# Find non-root and non-boot partitions, re-enable barriers
+-	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
+-	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
+-	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
+-
+-	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
+-	remount_partitions barrier $nobarriervols
+-
++	enable_disk_barriers
+ 	multiply_disk_readahead 0.25
+ 
+ 	return 0
+diff --git a/tune-profiles/virtual-host/ktune.sh b/tune-profiles/virtual-host/ktune.sh
+index 9664537..924d3ee 100755
+--- a/tune-profiles/virtual-host/ktune.sh
++++ b/tune-profiles/virtual-host/ktune.sh
+@@ -5,15 +5,7 @@
+ start() {
+ 	set_cpu_governor performance
+ 	enable_transparent_hugepages
+-
+-	# Find non-root and non-boot partitions, disable barriers on them
+-	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
+-	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
+-	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
+-
+-	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
+-	remount_partitions nobarrier $nobarriervols
+-
++	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
+ 	return 0
+@@ -22,15 +14,7 @@ start() {
+ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+-
+-	# Find non-root and non-boot partitions, re-enable barriers
+-	rootvol=$(df -h / | grep "^/dev" | awk '{print $1}')
+-	bootvol=$(df -h /boot | grep "^/dev" | awk '{print $1}')
+-	volumes=$(df -hl --exclude=tmpfs | grep "^/dev" | awk '{print $1}')
+-
+-	nobarriervols=$(echo "$volumes" | grep -v $rootvol | grep -v $bootvol)
+-	remount_partitions barrier $nobarriervols
+-
++	enable_disk_barriers
+ 	multiply_disk_readahead 0.25
+ 
+ 	return 0
+-- 
+1.7.11.4
+

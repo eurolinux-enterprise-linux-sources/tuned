@@ -1,0 +1,30 @@
+udev: add rule to restart ktune in new block device is added
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Upstream commit: c1b7f35
+Resolves: #847445
+
+diff --git a/Makefile b/Makefile
+index 84bf761..3029f3e 100644
+--- a/Makefile
++++ b/Makefile
+@@ -15,7 +15,7 @@ FILES_contrib = contrib/diskdevstat contrib/netdevstat contrib/scomes contrib/va
+ FILES_tuningplugins = tuningplugins/cpu.py tuningplugins/disk.py tuningplugins/net.py tuningplugins/__init__.py
+ FILES_monitorplugins = monitorplugins/cpu.py monitorplugins/disk.py monitorplugins/net.py monitorplugins/__init__.py
+ FILES_ktune = ktune/ktune.init ktune/ktune.sysconfig ktune/README.ktune
+-FILES_udev_rules = udev/80-tuned-iosched.rules udev/80-tuned-mpath-iosched.rules
++FILES_udev_rules = udev/80-tuned-iosched.rules udev/80-tuned-mpath-iosched.rules udev/81-tuned-add-disk.rules
+ FILES_udev_scripts = udev/tuned-mpath-iosched
+ FILES_libexec = libexec/pmqos-static.py
+ DOCS = AUTHORS ChangeLog COPYING INSTALL NEWS README
+diff --git a/udev/81-tuned-add-disk.rules b/udev/81-tuned-add-disk.rules
+new file mode 100644
+index 0000000..deb8313
+--- /dev/null
++++ b/udev/81-tuned-add-disk.rules
+@@ -0,0 +1,2 @@
++# restart ktune daemon if a new block device is added
++ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="disk", RUN+="/sbin/service ktune condrestart"
+-- 
+1.7.11.7
+

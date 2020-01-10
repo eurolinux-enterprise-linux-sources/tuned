@@ -1,0 +1,20 @@
+diff --git a/tune-profiles/virtual-guest/ktune.sh b/tune-profiles/virtual-guest/ktune.sh
+index 8106cf2..f562ae3 100755
+--- a/tune-profiles/virtual-guest/ktune.sh
++++ b/tune-profiles/virtual-guest/ktune.sh
+@@ -5,7 +5,6 @@
+ start() {
+ 	set_cpu_governor performance
+ 	set_transparent_hugepages always
+-	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
+ 	return 0
+@@ -14,7 +13,6 @@ start() {
+ stop() {
+ 	restore_cpu_governor
+ 	restore_transparent_hugepages
+-	enable_disk_barriers
+ 	multiply_disk_readahead 0.25
+ 
+ 	return 0

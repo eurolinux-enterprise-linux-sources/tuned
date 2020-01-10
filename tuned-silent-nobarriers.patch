@@ -1,0 +1,12 @@
+diff -up tuned-0.2.19/tune-profiles/functions.orig tuned-0.2.19/tune-profiles/functions
+--- tuned-0.2.19/tune-profiles/functions.orig	2013-07-22 13:39:43.000000000 +0200
++++ tuned-0.2.19/tune-profiles/functions	2013-07-22 18:58:03.463570972 +0200
+@@ -110,7 +110,7 @@ _disk_barriers_remount() {
+ 	' | \
+ 	while read mountpoint devices; do
+ 		if _devices_no_write_back_cache $devices; then
+-			mount -o remount,"$mount_options" "$mountpoint"
++			mount -o remount,"$mount_options" "$mountpoint" >/dev/null 2>&1
+ 		fi
+ 	done
+ }

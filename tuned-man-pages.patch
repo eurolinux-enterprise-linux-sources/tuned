@@ -1,0 +1,271 @@
+commit 97306e2b55dc2acccceadda203857747fbcea6ab
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date:   Thu Jan 13 13:50:36 2011 +0100
+
+    new man pages: diskdevstat netdevstat scomes varnetload
+
+diff --git a/doc/diskdevstat.8 b/doc/diskdevstat.8
+new file mode 100644
+index 0000000..0d9c1c1
+--- /dev/null
++++ b/doc/diskdevstat.8
+@@ -0,0 +1,30 @@
++.TH "diskdevstat" "8" "13 Jan 2011" "Phil Knirsch" "Tool for recording harddisk activity"
++.SH NAME
++diskdevstat \- tool for recording harddisk activity
++.SH SYNOPSIS
++\fBdiskdevstat\fP [\fIupdate interval\fP] [\fItotal duration\fP] [\fIdisplay histogram\fP]
++.SH DESCRIPTION
++\fBdiskdevstat\fR is a simple systemtap script to record harddisk activity of processes
++and display statistics for read/write operations.
++
++.TP
++update interval
++Sets sampling interval in seconds.
++.TP
++total duration
++Sets total measurement time in seconds.
++.TP
++display histogram
++If this parameter is present, the histogram will be shown at the end of the measurement.
++
++.SH "SEE ALSO"
++.LP
++tuned(8)
++netdevstat(8)
++varnetload(8)
++scomes(8)
++stap(1)
++.SH AUTHOR
++Written by Phil Knirsch <pknirsch@redhat.com>.
++.SH REPORTING BUGS
++Report bugs to <pknirsch@redhat.com>.
+diff --git a/doc/netdevstat.8 b/doc/netdevstat.8
+new file mode 100644
+index 0000000..da1a48d
+--- /dev/null
++++ b/doc/netdevstat.8
+@@ -0,0 +1,30 @@
++.TH "netdevstat" "8" "13 Jan 2011" "Phil Knirsch" "Tool for recording network activity"
++.SH NAME
++netdevstat \- tool for recording network activity
++.SH SYNOPSIS
++\fBnetdevstat\fP [\fIupdate interval\fP] [\fItotal duration\fP] [\fIdisplay histogram\fP]
++.SH DESCRIPTION
++\fBnetdevstat\fR is a simple systemtap script to record network activity of processes
++and display statistics for transmit/receive operations.
++
++.TP
++update interval
++Sets sampling interval in seconds.
++.TP
++total duration
++Sets total measurement time in seconds.
++.TP
++display histogram
++If this parameter is present, the histogram will be shown at the end of the measurement.
++
++.SH "SEE ALSO"
++.LP
++tuned(8)
++diskdevstat(8)
++varnetload(8)
++scomes(8)
++stap(1)
++.SH AUTHOR
++Written by Phil Knirsch <pknirsch@redhat.com>.
++.SH REPORTING BUGS
++Report bugs to <pknirsch@redhat.com>.
+diff --git a/doc/scomes.8 b/doc/scomes.8
+new file mode 100644
+index 0000000..0fbc4d4
+--- /dev/null
++++ b/doc/scomes.8
+@@ -0,0 +1,29 @@
++.TH "scomes" "8" "13 Jan 2011" "Phil Knirsch" "Tool for watching system resources"
++.SH NAME
++scomes \- tool for watching system resources
++.SH SYNOPSIS
++\fBscomes\fP -c "binary [binary arguments ...]" [timer]
++.SH DESCRIPTION
++\fBscomes\fR is a simple systemtap script for watching activity of one process. Syscalls count,
++userspace and kernelspace ticks, read and written bytes, transitted and received bytes and polling
++syscalls are measured.
++
++.TP
++binary
++Binary file to be executed. This process will be watched.
++.TP
++timer
++Setting this option causes the script to print out statistic every N seconds. If not provided,
++the statistics are printed only when watched process terminates.
++
++.SH "SEE ALSO"
++.LP
++tuned(8)
++diskdevstat(8)
++netdevstat(8)
++varnetload(8)
++stap(1)
++.SH AUTHOR
++Written by Jan Hutar <jhutar@redhat.com>.
++.SH REPORTING BUGS
++Report bugs to <pknirsch@redhat.com>.
+diff --git a/doc/varnetload.8 b/doc/varnetload.8
+new file mode 100644
+index 0000000..9f4be59
+--- /dev/null
++++ b/doc/varnetload.8
+@@ -0,0 +1,33 @@
++.TH "varnetload" "8" "13 Jan 2011" "Phil Knirsch" "Tool to create reproducable network traffic"
++.SH NAME
++varnetload \- tool to create reproducable network traffic
++.SH SYNOPSIS
++\fBvarnetload\fP [\fI-d delay\fP] [\fI-t time to run\fP] [\fI-u url\fP]
++.SH DESCRIPTION
++\fBvarnetload\fR is a simple python script to create reproducable sustained network traffic.
++
++In order to use it effectively, you need to have an HTTP server present in your local LAN where you
++can put files. Upload a large HTML (or any other kind of file) to the HTTP server. Use the -u option
++of the script to point to that URL. Play with the delay option to vary the load put on your network.
++
++.TP
++delay
++Sets delay between individual downloads in miliseconds. Default value is 1000. But you my find values
++range from 0 to 500 more useful.
++.TP
++time to run
++Sets total run time in seconds. Default value is 60.
++.TP
++url
++Sets downloaded resource. Default is http://myhost.mydomain/index.html.
++
++.SH "SEE ALSO"
++.LP
++tuned(8)
++diskdevstat(8)
++netdevstat(8)
++scomes(8)
++.SH AUTHOR
++Written by Phil Knirsch <pknirsch@redhat.com>.
++.SH REPORTING BUGS
++Report bugs to <pknirsch@redhat.com>.
+
+commit 840c0e8232711d86a1fc466932cd88be910083dd
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date:   Thu Jan 13 14:02:28 2011 +0100
+
+    Makefile: added new manpages
+
+diff --git a/Makefile b/Makefile
+index 50aa2b4..6eb7ee6 100644
+--- a/Makefile
++++ b/Makefile
+@@ -9,7 +9,7 @@ GITTAG = v$(VERSION)
+ 
+ DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune udev
+ FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned_nettool.py tuned_logging.py tuned.bash tuned.tmpfiles
+-FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes
++FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes doc/diskdevstat.8 doc/netdevstat.8 doc/scomes.8 doc/varnetload.8
+ FILES_examples = ktune/sysctl.ktune
+ FILES_contrib = contrib/diskdevstat contrib/netdevstat contrib/scomes contrib/varnetload
+ FILES_tuningplugins = tuningplugins/cpu.py tuningplugins/disk.py tuningplugins/net.py tuningplugins/__init__.py
+@@ -105,6 +105,10 @@ install:
+ 	# Install manpages
+ 	mkdir -p $(DESTDIR)/usr/share/man/man8
+ 	install -m 0644 doc/tuned.8 $(DESTDIR)/usr/share/man/man8
++	install -m 0644 doc/diskdevstat.8 $(DESTDIR)/usr/share/man/man8
++	install -m 0644 doc/netdevstat.8 $(DESTDIR)/usr/share/man/man8
++	install -m 0644 doc/scomes.8 $(DESTDIR)/usr/share/man/man8
++	install -m 0644 doc/varnetload.8 $(DESTDIR)/usr/share/man/man8
+ 	mkdir -p $(DESTDIR)/usr/share/man/man5
+ 	install -m 0644 doc/tuned.conf.5 $(DESTDIR)/usr/share/man/man5
+ 	mkdir -p $(DESTDIR)/usr/share/man/man1
+
+commit a351b52ff3ddb22f0ec23608ca5e81c333acf5e9
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date:   Thu Jan 13 14:58:07 2011 +0100
+
+    man: tuned.conf - plugins description
+
+diff --git a/doc/tuned.conf.5 b/doc/tuned.conf.5
+index d5e903b..6211f32 100644
+--- a/doc/tuned.conf.5
++++ b/doc/tuned.conf.5
+@@ -30,6 +30,20 @@ the section name. All plugins support at least the following options:
+ 
+ .IP \fBenabled\fR
+ Enabled or disable the plugin. Default is True. Any other value disables it.
++.SH "AVAILABLE PLUGINS"
++.IP \fBcpu\fR
++Plugin monitors CPU load and changes it's latency setting to increase power
++savings but without sacrificing the user's QoS expectations. It can basically
++improve CPU idle time. The setting is available only with ondemand CPU governor.
++
++.IP \fBdisk\fR
++Plugin monitors disk activity (read/write) and dynamically changes APM settings
++and disk spindown settings.
++
++.IP \fBnet\fR
++Plugin monitors network activity (receive/transmit) and can dynamically switch
++between 10Mbps mode (saves power) and maximal speed mode.
++
+ .SH "FILES"
+ .nf
+ /etc/tuned.conf
+
+commit 5299225ea95d7bfbd2b2c1084c3dd501c0e07e5a
+Author: Jan Vcelak <jvcelak@redhat.com>
+Date:   Thu Jan 13 15:35:53 2011 +0100
+
+    man: tuned-adm - update profiles description
+
+diff --git a/doc/tuned-adm.1 b/doc/tuned-adm.1
+index 25ff64a..188f99a 100644
+--- a/doc/tuned-adm.1
++++ b/doc/tuned-adm.1
+@@ -52,15 +52,14 @@ Switches to the given profilename. If none is given or no valid one is given the
+ 
+ .TP
+ .B off
+-Switch off all ktune and tuned settings and remove them from services. The configuration file are 
+-set to previous settings.
++Switch off all ktune and tuned settings and remove them from services. The configuration file are set to previous settings.
+ 
+ .SH PREDEFINED PROFILES
+ At the moment we're providing the following pre defined profiles:
+ 
+ .TP
+ .BI "default"
+-This is the default powersaving profile. It is the lowest of the available profiles in regard to powersaving and only enables CPU and disk plugins of tuned.
++This is the default powersaving profile. It is the lowest of the available profiles in regard to powersaving and only enables CPU and disk plugins of tuned. This is not the same as 'tuned-adm off', where tuned and ktune services are disabled.
+ 
+ .TP
+ .BI "desktop-powersave"
+@@ -76,15 +75,23 @@ Medium powersaving profile directed at laptops running on AC. Enables ALPM power
+ 
+ .TP
+ .BI laptop-battery-powersave
+-Strong powersaving profile directed at laptops running on battery. It activates all power saving mechanisms from the previous profiles plus it enables multi core power savings scheduler for low wakeup systems and makes sure the ondemand governor is active and the AC97 audio power saving is enabled. This profile can be used for any kind of system, not only laptops on battery power in order to save the maximum amount of power. The tradeoff for this profile is a noticeable impact on performance, specifically latency of disk and network IO. 
++Strong powersaving profile directed at laptops running on battery. It activates all power saving mechanisms from the previous profiles plus it enables multi core power savings scheduler for low wakeup systems and makes sure the ondemand governor is active and the AC97 audio power saving is enabled.  This profile can be used for any kind of system, not only laptops on battery power in order to save the maximum amount of power. The tradeoff for this profile is a noticeable impact on performance, specifically latency of disk and network IO. 
++
++.TP
++.BI "spindown-disk"
++Strong powersaving profile enabling aggresive disk spin-down. Disk writeback values are increased and disk swappines is lowered. CD drives polling and log syncing is disabled. All partitions are remounted with 'noatime' option. All tuned plugins are disabled.
+ 
+ .TP
+ .BI throughput-performance
+-Sever profile for typical throughput performance tuning. Disables tuned and ktune power saving mechanisms and enables sysctl settings that improve the throughput performance of your disk and network IO and switches to the deadline scheduler.
++Server profile for typical throughput performance tuning. Disables tuned and ktune power saving mechanisms and enables sysctl settings that improve the throughput performance of your disk and network IO and switches to the deadline scheduler. CPU governor is set to performance.
+ 
+ .TP
+ .BI latency-performance
+-Sever profile for typical latency performance tuning. Disables tuned and ktune power saving mechanisms and enables sysctl settings that improve the latency performance of your network IO.
++Server profile for typical latency performance tuning. Disables tuned and ktune power saving mechanisms and enables deadline IO scheduler. CPU governor is set to performance.
++
++.TP
++.BI "enterprise-storage"
++Server profile for high disk throughput performace tuning. Disables tuned and ktune power saving mechanisms and enables deadline IO scheduler. Enables hugepages and disables disk barriers. Disk readahead values are increased. CPU governor is set to performance.
+ 
+ .SH "FILES"
+ .nf

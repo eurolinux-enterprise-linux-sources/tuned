@@ -1,0 +1,30 @@
+tuned: create PID file with proper permissions
+
+Author: Jan Vcelak <jvcelak@redhat.com>
+Upstream commit: 9e8f67009568adce6b9a2f1d4c4c828b2192cba8
+Resolves: #845336
+
+---
+ tuned.py | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/tuned.py b/tuned.py
+index 5dbebcc..673c687 100644
+--- a/tuned.py
++++ b/tuned.py
+@@ -90,9 +90,9 @@ class Tuned:
+ 
+ 	def run(self):
+ 		try:
+-			f = open(self.pidfile, "w")
+-			f.write("%d" % os.getpid())
+-			f.close()
++			fd = os.open(self.pidfile, os.O_CREAT|os.O_TRUNC|os.O_WRONLY , 0644)
++			os.write(fd, "%d" % os.getpid())
++			os.close(fd)
+ 		except:
+ 			log.warning("Cannot write to pidfile (%s)" % self.pidfile)
+ 
+-- 
+1.7.11.4
+

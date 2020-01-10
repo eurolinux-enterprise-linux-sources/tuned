@@ -1,0 +1,34 @@
+From 66d8e396db3845463abc181c541ee09c686b1ff1 Mon Sep 17 00:00:00 2001
+From: Jan Vcelak <jvcelak@redhat.com>
+Date: Fri, 07 Dec 2012 13:06:09 +0000
+Subject: {disk,net}devstat: fix typo in usage
+
+---
+diff --git a/contrib/diskdevstat b/contrib/diskdevstat
+index a2308a1..c882f76 100755
+--- a/contrib/diskdevstat
++++ b/contrib/diskdevstat
+@@ -29,7 +29,7 @@ function help()
+ 	"statistics for read/write operations.\n\n"
+         "usage: diskdevstat [update-interval] [total-duration] [display-histogram]\n\n"
+ 	"       update-interval      in seconds, the default is 5\n"
+-	"       total-interval       in seconds, the default is 86400\n"
++	"       total-duration       in seconds, the default is 86400\n"
+ 	"       display-histogram    anything, unset by default\n"
+ 	);
+ }
+diff --git a/contrib/netdevstat b/contrib/netdevstat
+index 2936199..822598c 100755
+--- a/contrib/netdevstat
++++ b/contrib/netdevstat
+@@ -29,7 +29,7 @@ function help()
+ 	"statistics for transmit/receive operations.\n\n"
+ 	"usage: netdevstat [update-interval] [total-duration] [display-histogram]\n\n"
+ 	"       update-interval      in seconds, the default is 5\n"
+-	"       total-interval       in seconds, the default is 86400\n"
++	"       total-duration       in seconds, the default is 86400\n"
+ 	"       display-histogram    anything, unset by default\n"
+ 	);
+ }
+--
+cgit v0.9.1

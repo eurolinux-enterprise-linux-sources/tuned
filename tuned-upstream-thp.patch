@@ -1,0 +1,22 @@
+From ab68a746e344984a5af3d27594b8994d214857a0 Mon Sep 17 00:00:00 2001
+From: Jaroslav Škarvada <jskarvad@redhat.com>
+Date: Tue, 19 Feb 2013 17:16:29 +0000
+Subject: Add support for upstream THP
+
+  resolves: rhbz#912788
+---
+diff --git a/tune-profiles/functions b/tune-profiles/functions
+index a0c3c5f..7137716 100644
+--- a/tune-profiles/functions
++++ b/tune-profiles/functions
+@@ -227,6 +227,8 @@ disable_cpu_multicore_powersave() {
+ THP_ENABLE="/sys/kernel/mm/redhat_transparent_hugepage/enabled"
+ THP_SAVE="/var/run/tuned/ktune-thp.save"
+ 
++[ -e "$THP_ENABLE" ] || THP_ENABLE="/sys/kernel/mm/transparent_hugepage/enabled"
++
+ set_transparent_hugepages() {
+ 	if [ -e $THP_ENABLE ]; then
+ 		cut -f2 -d'[' $THP_ENABLE  | cut -f1 -d']' > $THP_SAVE
+--
+cgit v0.9.1

@@ -1,0 +1,12 @@
+diff -up tuned-0.2.19/tuned-adm.orig tuned-0.2.19/tuned-adm
+--- tuned-0.2.19/tuned-adm.orig	2011-01-10 20:23:51.000000000 +0100
++++ tuned-0.2.19/tuned-adm	2013-07-23 10:00:13.727337433 +0200
+@@ -33,7 +33,7 @@ commands:
+   help                           show this help message and exit
+   list                           list all available and active profiles
+   active                         show current active profile
+-  off                            switch off all tunning
++  off                            switch off all tuning
+   profile <profile-name>         switch to given profile
+ """
+ 

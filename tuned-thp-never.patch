@@ -1,0 +1,90 @@
+diff --git a/tune-profiles/enterprise-storage/ktune.sh b/tune-profiles/enterprise-storage/ktune.sh
+index 924d3ee..8106cf2 100755
+--- a/tune-profiles/enterprise-storage/ktune.sh
++++ b/tune-profiles/enterprise-storage/ktune.sh
+@@ -4,7 +4,7 @@
+ 
+ start() {
+ 	set_cpu_governor performance
+-	enable_transparent_hugepages
++	set_transparent_hugepages always
+ 	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
+diff --git a/tune-profiles/functions b/tune-profiles/functions
+index fae9d53..52805af 100644
+--- a/tune-profiles/functions
++++ b/tune-profiles/functions
+@@ -217,10 +217,10 @@ disable_cpu_multicore_powersave() {
+ THP_ENABLE="/sys/kernel/mm/redhat_transparent_hugepage/enabled"
+ THP_SAVE="/var/run/tuned/ktune-thp.save"
+ 
+-enable_transparent_hugepages() {
++set_transparent_hugepages() {
+ 	if [ -e $THP_ENABLE ]; then
+ 		cut -f2 -d'[' $THP_ENABLE  | cut -f1 -d']' > $THP_SAVE
+-		(echo always > $THP_ENABLE) &> /dev/null
++		(echo "$1" > $THP_ENABLE) &> /dev/null
+ 	fi
+ }
+ 
+diff --git a/tune-profiles/latency-performance/ktune.sh b/tune-profiles/latency-performance/ktune.sh
+index de39c60..9eb5bc3 100755
+--- a/tune-profiles/latency-performance/ktune.sh
++++ b/tune-profiles/latency-performance/ktune.sh
+@@ -5,6 +5,7 @@
+ start() {
+ 	set_cpu_governor performance
+ 	/usr/libexec/tuned/pmqos-static.py cpu_dma_latency=0
++	set_transparent_hugepages never
+ 
+ 	return 0
+ }
+@@ -12,7 +13,7 @@ start() {
+ stop() {
+ 	restore_cpu_governor
+ 	/usr/libexec/tuned/pmqos-static.py disable
+-
++	restore_transparent_hugepages
+ 	return 0
+ }
+ 
+diff --git a/tune-profiles/throughput-performance/ktune.sh b/tune-profiles/throughput-performance/ktune.sh
+index 168aecc..671f4fe 100755
+--- a/tune-profiles/throughput-performance/ktune.sh
++++ b/tune-profiles/throughput-performance/ktune.sh
+@@ -4,7 +4,7 @@
+ 
+ start() {
+ 	set_cpu_governor performance
+-	enable_transparent_hugepages
++	set_transparent_hugepages always
+ 
+ 	return 0
+ }
+diff --git a/tune-profiles/virtual-guest/ktune.sh b/tune-profiles/virtual-guest/ktune.sh
+index 924d3ee..8106cf2 100755
+--- a/tune-profiles/virtual-guest/ktune.sh
++++ b/tune-profiles/virtual-guest/ktune.sh
+@@ -4,7 +4,7 @@
+ 
+ start() {
+ 	set_cpu_governor performance
+-	enable_transparent_hugepages
++	set_transparent_hugepages always
+ 	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
+diff --git a/tune-profiles/virtual-host/ktune.sh b/tune-profiles/virtual-host/ktune.sh
+index 924d3ee..8106cf2 100755
+--- a/tune-profiles/virtual-host/ktune.sh
++++ b/tune-profiles/virtual-host/ktune.sh
+@@ -4,7 +4,7 @@
+ 
+ start() {
+ 	set_cpu_governor performance
+-	enable_transparent_hugepages
++	set_transparent_hugepages always
+ 	disable_disk_barriers
+ 	multiply_disk_readahead 4
+ 
