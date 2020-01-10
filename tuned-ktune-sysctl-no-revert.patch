@@ -1,0 +1,17 @@
+diff --git a/ktune/ktune.init b/ktune/ktune.init
+index 19ce0f1..8e4f616 100644
+--- a/ktune/ktune.init
++++ b/ktune/ktune.init
+@@ -164,8 +164,10 @@ load_sysctl() {
+ 
+ revert_sysctl() {
+     if [ -r "$SAVE_FILE" ]; then
+-	echo -n $"Reverting to saved sysctl settings: "
+-	load_file "$SAVE_FILE" 0
++	if [ "$KTUNE_REVERT_SYSCTL" = 1 ]; then
++	    echo -n $"Reverting to saved sysctl settings: "
++	    load_file "$SAVE_FILE" 0
++	fi
+ 	/bin/rm -f "$SAVE_FILE"
+     fi
+ 

@@ -3,7 +3,7 @@
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
 Version: 0.2.19
-Release: 15%{?dist}
+Release: 16%{?dist}
 License: GPLv2+
 Group: System Environment/Daemons
 # The source for this package was pulled from upstream git.  Use the
@@ -49,6 +49,8 @@ Patch33: tuned-latency-performance-typo-fix.patch
 Patch34: tuned-dasd.patch
 Patch35: tuned-xvd.patch
 Patch36: tuned-sap-netweaver-increase-vm-max-map-count.patch
+Patch37: tuned-add-oracle.patch
+Patch38: tuned-ktune-sysctl-no-revert.patch
 
 URL: https://fedorahosted.org/tuned/
 Buildroot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
@@ -93,6 +95,13 @@ Requires: %{name} = %{version}-%{release}
 %description profiles-sap-hana
 Additional tuned profile(s) targeted to SAP HANA loads.
 
+%package profiles-oracle
+Summary: Additional tuned profile(s) targeted to Oracle loads
+Requires: %{name} = %{version}-%{release}
+
+%description profiles-oracle
+Additional tuned profile(s) targeted to Oracle loads.
+
 %prep
 %setup -q
 %patch1 -p1
@@ -131,6 +140,8 @@ Additional tuned profile(s) targeted to SAP HANA loads.
 %patch34 -p1
 %patch35 -p1
 %patch36 -p1
+%patch37 -p1
+%patch38 -p1
 
 # fix permissions on ktune scripts (some were created by the patches)
 chmod 0755 tune-profiles/*/ktune.sh
@@ -178,11 +189,20 @@ fi
 %{_sbindir}/tuned-adm
 # consolehelper hard link
 %{_bindir}/tuned-adm
+%dir %{_sysconfdir}/tune-profiles
 %config(noreplace) %verify(not size mtime md5) %{_sysconfdir}/tune-profiles/active-profile
-%{_sysconfdir}/tune-profiles
-%exclude %{_sysconfdir}/tune-profiles/sap-netweaver
-%exclude %{_sysconfdir}/tune-profiles/sap-hana
-%exclude %{_sysconfdir}/tune-profiles/sap-hana-vmware
+%{_sysconfdir}/tune-profiles/functions
+%{_sysconfdir}/tune-profiles/default
+%{_sysconfdir}/tune-profiles/desktop-powersave
+%{_sysconfdir}/tune-profiles/enterprise-storage
+%{_sysconfdir}/tune-profiles/laptop-ac-powersave
+%{_sysconfdir}/tune-profiles/laptop-battery-powersave
+%{_sysconfdir}/tune-profiles/latency-performance
+%{_sysconfdir}/tune-profiles/server-powersave
+%{_sysconfdir}/tune-profiles/spindown-disk
+%{_sysconfdir}/tune-profiles/throughput-performance
+%{_sysconfdir}/tune-profiles/virtual-guest
+%{_sysconfdir}/tune-profiles/virtual-host
 %{_datadir}/tuned
 %{_mandir}/man1/tuned-adm.*
 %{_mandir}/man5/tuned.conf.*
@@ -227,7 +247,18 @@ fi
 %{_sysconfdir}/tune-profiles/sap-hana-vmware
 %{_mandir}/man7/tuned-profiles-sap-hana.7*
 
+%files profiles-oracle
+%defattr(-,root,root,-)
+%{_sysconfdir}/tune-profiles/oracle
+%{_mandir}/man7/tuned-profiles-oracle.7*
+
 %changelog
+* Tue Nov 24 2015 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-16
+- added oracle profile
+  resolves: rhbz#1196294
+- ktune now doesn't revert sysctl settings if not explictly requested
+  resolves: rhbz#1111416
+
 * Mon Feb  9 2015 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-15
 - dynamically changing symlinks excluded from the RPM verification
   resolves: rhbz#1017366

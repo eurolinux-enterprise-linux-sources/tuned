@@ -1,0 +1,256 @@
+diff --git a/Makefile b/Makefile
+index 98e1079..b4683ff 100644
+--- a/Makefile
++++ b/Makefile
+@@ -9,7 +9,7 @@ GITTAG = v$(VERSION)
+ 
+ DIRS = doc doc/examples contrib tuningplugins monitorplugins ktune udev libexec
+ FILES = tuned tuned.spec Makefile tuned.py tuned.initscript tuned.conf tuned-adm tuned_adm.py tuned-adm.pam tuned-adm.consolehelper tuned_nettool.py tuned_logging.py tuned.bash tuned.tmpfiles
+-FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes doc/diskdevstat.8 doc/netdevstat.8 doc/scomes.8 doc/varnetload.8 doc/tuned-profiles.7 doc/tuned-profiles-sap.7 doc/tuned-profiles-sap-hana.7
++FILES_doc = doc/DESIGN.txt doc/README.utils doc/TIPS.txt doc/tuned.8 doc/tuned.conf.5 doc/tuned-adm.1 doc/README.scomes doc/diskdevstat.8 doc/netdevstat.8 doc/scomes.8 doc/varnetload.8 doc/tuned-profiles.7 doc/tuned-profiles-sap.7 doc/tuned-profiles-sap-hana.7 doc/tuned-profiles-oracle.7
+ FILES_examples = ktune/sysctl.ktune
+ FILES_contrib = contrib/diskdevstat contrib/netdevstat contrib/scomes contrib/varnetload
+ FILES_tuningplugins = tuningplugins/cpu.py tuningplugins/disk.py tuningplugins/net.py tuningplugins/__init__.py
+@@ -119,6 +119,7 @@ install:
+ 	install -m 0644 doc/tuned-profiles.7 $(DESTDIR)/usr/share/man/man7
+ 	install -m 0644 doc/tuned-profiles-sap.7 $(DESTDIR)/usr/share/man/man7
+ 	install -m 0644 doc/tuned-profiles-sap-hana.7 $(DESTDIR)/usr/share/man/man7
++	install -m 0644 doc/tuned-profiles-oracle.7 $(DESTDIR)/usr/share/man/man7
+ 
+ 	# Install ktune
+ 	install -m 755 -d $(DESTDIR)/etc
+diff --git a/doc/tuned-profiles-oracle.7 b/doc/tuned-profiles-oracle.7
+new file mode 100644
+index 0000000..0fe608a
+--- /dev/null
++++ b/doc/tuned-profiles-oracle.7
+@@ -0,0 +1,49 @@
++.\"/* 
++.\" * All rights reserved
++.\" * Copyright (C) 2009-2015 Red Hat, Inc.
++.\" * Authors: Jaroslav Škarvada
++.\" *
++.\" * This program is free software; you can redistribute it and/or
++.\" * modify it under the terms of the GNU General Public License
++.\" * as published by the Free Software Foundation; either version 2
++.\" * of the License, or (at your option) any later version.
++.\" *
++.\" * This program is distributed in the hope that it will be useful,
++.\" * but WITHOUT ANY WARRANTY; without even the implied warranty of
++.\" * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++.\" * GNU General Public License for more details.
++.\" *
++.\" * You should have received a copy of the GNU General Public License
++.\" * along with this program; if not, write to the Free Software
++.\" * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
++.\" */
++.\" 
++.TH TUNED_PROFILES_ORACLE "7" "24 Nov 2015" "Fedora Power Management SIG" "tuned"
++.SH NAME
++tuned\-profiles\-oracle - description of profiles provided for the Oracle
++
++.SH DESCRIPTION
++These profiles provide performance optimizations for the Oracle loads.
++
++.SH PROFILES
++The following profiles are provided:
++
++.TP
++.BI "oracle"
++Profile optimized for Oracle databases based on throughput\-performance profile.
++It additionaly disables transparent huge pages and modifies some other
++performance related kernel parameters.
++
++.SH "FILES"
++.NF
++/etc/tune\-profiles/*
++
++.SH "SEE ALSO"
++.BR tuned (8)
++.BR tuned\-adm (1)
++.BR tuned\-profiles (7)
++.BR tuned\-profiles\-sap (7)
++.BR tuned\-profiles\-sap\-hana (7)
++.SH AUTHOR
++.NF
++Jaroslav Škarvada <jskarvad@redhat.com>
+diff --git a/doc/tuned-profiles-sap-hana.7 b/doc/tuned-profiles-sap-hana.7
+index 2ead85a..99bff7f 100644
+--- a/doc/tuned-profiles-sap-hana.7
++++ b/doc/tuned-profiles-sap-hana.7
+@@ -52,6 +52,7 @@ recieve offload for the network adapter.
+ .BR tuned\-adm (1)
+ .BR tuned\-profiles (7)
+ .BR tuned\-profiles\-sap (7)
++.BR tuned\-profiles\-oracle (7)
+ .SH AUTHOR
+ .NF
+ Jaroslav Škarvada <jskarvad@redhat.com>
+diff --git a/doc/tuned-profiles-sap.7 b/doc/tuned-profiles-sap.7
+index 4211775..2ba301d 100644
+--- a/doc/tuned-profiles-sap.7
++++ b/doc/tuned-profiles-sap.7
+@@ -44,6 +44,7 @@ areas a process may have.
+ .BR tuned\-adm (1)
+ .BR tuned\-profiles (7)
+ .BR tuned\-profiles\-sap\-hana (7)
++.BR tuned\-profiles\-oracle (7)
+ .SH AUTHOR
+ .NF
+ Jaroslav Škarvada <jskarvad@redhat.com>
+diff --git a/doc/tuned-profiles.7 b/doc/tuned-profiles.7
+index fce7048..308383c 100644
+--- a/doc/tuned-profiles.7
++++ b/doc/tuned-profiles.7
+@@ -87,6 +87,7 @@ Profile optimized for virtual hosts based on enterprise-storage profile. It addi
+ .BR tuned\-adm (1)
+ .BR tuned\-profiles\-sap (7)
+ .BR tuned\-profiles\-sap\-hana (7)
++.BR tuned\-profiles\-oracle (7)
+ .SH AUTHOR
+ .NF
+ Marcela Mašláňová <mmaslano@redhat.com>
+diff --git a/tune-profiles/oracle/ktune.sh b/tune-profiles/oracle/ktune.sh
+new file mode 100755
+index 0000000..d85475d
+--- /dev/null
++++ b/tune-profiles/oracle/ktune.sh
+@@ -0,0 +1,22 @@
++#!/bin/sh
++
++# Oracle ktune script
++# based on the throughput-performance profile
++
++. /etc/tune-profiles/functions
++
++start() {
++	set_cpu_governor performance
++	set_transparent_hugepages never
++
++	return 0
++}
++
++stop() {
++	restore_cpu_governor
++	restore_transparent_hugepages
++
++	return 0
++}
++
++process $@
+diff --git a/tune-profiles/oracle/ktune.sysconfig b/tune-profiles/oracle/ktune.sysconfig
+new file mode 100644
+index 0000000..cfa0616
+--- /dev/null
++++ b/tune-profiles/oracle/ktune.sysconfig
+@@ -0,0 +1,32 @@
++# Oracle ktune service configuration
++# based on the throughput-performance profile
++
++# This is the ktune sysctl file.  You can comment this out to prevent ktune
++# from applying its sysctl settings.
++SYSCTL="/etc/sysctl.ktune"
++
++# Use *.conf files in the ktune configuration directory /etc/ktune.d.
++#   Value: yes|no,  default: yes
++# It is useful if you want to load settings from additional files. Set this to
++# no if you to prevent ktune from using these additional files.
++USE_KTUNE_D="yes"
++
++# This is the custom sysctl configuration file. Any settings in this file will
++# be applied before the ktune settings, thus may be overridden by ktune.
++SYSCTL_PRE="/etc/sysctl.conf /etc/sysctl.d/*"
++
++# This is the custom sysctl configuration file. Any settings in this file will
++# be applied after the ktune settings, overriding them
++#SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
++
++# This is the I/O scheduler ktune will use. This will *not* override anything
++# explicitly set on the kernel command line, nor will it change the scheduler
++# for any block device that is using a non-default scheduler when ktune starts.
++# You should probably leave this on "deadline", but "as", "cfq", and "noop" are
++# also legal values.  Comment this out to prevent ktune from changing I/O
++# scheduler settings.
++ELEVATOR="deadline"
++
++# These are the devices, that should be tuned with the ELEVATOR
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
++
+diff --git a/tune-profiles/oracle/sysctl.ktune b/tune-profiles/oracle/sysctl.ktune
+new file mode 100644
+index 0000000..9a7bfb2
+--- /dev/null
++++ b/tune-profiles/oracle/sysctl.ktune
+@@ -0,0 +1,41 @@
++# Oracle ktune sysctl settings
++# based on the throughput-performance profile
++
++# ktune sysctl settings for rhel6 servers, maximizing i/o throughput
++#
++# Minimal preemption granularity for CPU-bound tasks:
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++kernel.sched_min_granularity_ns = 10000000
++
++# SCHED_OTHER wake-up granularity.
++# (default: 1 msec#  (1 + ilog(ncpus)), units: nanoseconds)
++#
++# This option delays the preemption effects of decoupled workloads
++# and reduces their over-scheduling. Synchronous workloads will still
++# have immediate wakeup/sleep latencies.
++kernel.sched_wakeup_granularity_ns = 15000000
++
++# If a workload mostly uses anonymous memory and it hits this limit, the entire
++# working set is buffered for I/O, and any more write buffering would require
++# swapping, so it's time to throttle writes until I/O can catch up.  Workloads
++# that mostly use file mappings may be able to use even higher values.
++#
++# Oracle specific tunings
++vm.swappiness = 1
++vm.dirty_background_ratio = 3
++vm.dirty_ratio = 80
++vm.dirty_expire_centisecs = 500
++vm.dirty_writeback_centisecs = 100
++kernel.shmmax = 4398046511104
++kernel.shmall = 1073741824
++kernel.shmmni = 4096
++kernel.sem = 250 32000 100 128
++fs.file-max = 6815744
++fs.aio-max-nr = 1048576
++net.ipv4.ip_local_port_range = 9000 65500
++net.core.rmem_default = 262144
++net.core.rmem_max = 4194304
++net.core.wmem_default = 262144
++net.core.wmem_max = 1048576
++kernel.panic_on_oops = 1
++
+diff --git a/tune-profiles/oracle/tuned.conf b/tune-profiles/oracle/tuned.conf
+new file mode 100644
+index 0000000..0df06e8
+--- /dev/null
++++ b/tune-profiles/oracle/tuned.conf
+@@ -0,0 +1,22 @@
++# Oracle tuned profile
++# based on the throughput-performance profile
++
++[main]
++
++[DiskMonitor]
++enabled=False
++
++[DiskTuning]
++enabled=False
++
++[NetMonitor]
++enabled=False
++
++[NetTuning]
++enabled=False
++
++[CPUMonitor]
++enabled=False
++
++[CPUTuning]
++enabled=False
+-- 
+2.4.3
+
