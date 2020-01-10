@@ -1,0 +1,191 @@
+From 07ba54d55a67aaaa3671715a8fda376970b3a528 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jaroslav=20=C5=A0karvada?= <jskarvad@redhat.com>
+Date: Fri, 27 Feb 2015 17:34:04 +0100
+Subject: [PATCH 4/5] profiles: added support for Xen VSDs
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Resolves: rhbz#1159963
+
+Signed-off-by: Jaroslav Škarvada <jskarvad@redhat.com>
+---
+ ktune/README.ktune                                     | 2 +-
+ ktune/ktune.sysconfig                                  | 2 +-
+ tune-profiles/desktop-powersave/ktune.sysconfig        | 2 +-
+ tune-profiles/enterprise-storage/ktune.sysconfig       | 2 +-
+ tune-profiles/functions                                | 2 +-
+ tune-profiles/laptop-ac-powersave/ktune.sysconfig      | 2 +-
+ tune-profiles/laptop-battery-powersave/ktune.sysconfig | 2 +-
+ tune-profiles/latency-performance/ktune.sysconfig      | 2 +-
+ tune-profiles/sap-hana-vmware/ktune.sysconfig          | 2 +-
+ tune-profiles/sap-hana/ktune.sysconfig                 | 2 +-
+ tune-profiles/sap-netweaver/ktune.sysconfig            | 2 +-
+ tune-profiles/server-powersave/ktune.sysconfig         | 2 +-
+ tune-profiles/throughput-performance/ktune.sysconfig   | 2 +-
+ tune-profiles/virtual-guest/ktune.sysconfig            | 2 +-
+ tune-profiles/virtual-host/ktune.sysconfig             | 2 +-
+ 15 files changed, 15 insertions(+), 15 deletions(-)
+
+diff --git a/ktune/README.ktune b/ktune/README.ktune
+index 515653c..c812210 100644
+--- a/ktune/README.ktune
++++ b/ktune/README.ktune
+@@ -51,7 +51,7 @@ service is enabled and started, it will use the configuration options from
+     SYSCTL_PRE="/etc/sysctl.conf /etc/sysctl.d/*"
+     SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+     ELEVATOR="deadline"
+-    ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++    ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+ 
+ SYSCTL is the primary ktune sysctl profile. If you comment it out, it will not
+ get applied.
+diff --git a/ktune/ktune.sysconfig b/ktune/ktune.sysconfig
+index d9b3dd6..98227e0 100644
+--- a/ktune/ktune.sysconfig
++++ b/ktune/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/desktop-powersave/ktune.sysconfig b/tune-profiles/desktop-powersave/ktune.sysconfig
+index faba34b..3b7f9aa 100644
+--- a/tune-profiles/desktop-powersave/ktune.sysconfig
++++ b/tune-profiles/desktop-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/enterprise-storage/ktune.sysconfig b/tune-profiles/enterprise-storage/ktune.sysconfig
+index 0099450..d17e52a 100644
+--- a/tune-profiles/enterprise-storage/ktune.sysconfig
++++ b/tune-profiles/enterprise-storage/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/functions b/tune-profiles/functions
+index d2cafb6..47bb441 100644
+--- a/tune-profiles/functions
++++ b/tune-profiles/functions
+@@ -8,7 +8,7 @@
+ #
+ 
+ DISKS_DEV="$(command ls -d1 /dev/[shv]d*[a-z] 2>/dev/null)"
+-DISKS_SYS="$(command ls -d1 /sys/block/{sd,cciss,dm-,vd,dasd}* 2>/dev/null)"
++DISKS_SYS="$(command ls -d1 /sys/block/{sd,cciss,dm-,vd,dasd,xvd}* 2>/dev/null)"
+ 
+ # SATA Aggressive Link Power Management
+ # usage: set_disk_alpm policy
+diff --git a/tune-profiles/laptop-ac-powersave/ktune.sysconfig b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+index faba34b..3b7f9aa 100644
+--- a/tune-profiles/laptop-ac-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/laptop-battery-powersave/ktune.sysconfig b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+index faba34b..3b7f9aa 100644
+--- a/tune-profiles/laptop-battery-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/latency-performance/ktune.sysconfig b/tune-profiles/latency-performance/ktune.sysconfig
+index 0099450..d17e52a 100644
+--- a/tune-profiles/latency-performance/ktune.sysconfig
++++ b/tune-profiles/latency-performance/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/sap-hana-vmware/ktune.sysconfig b/tune-profiles/sap-hana-vmware/ktune.sysconfig
+index 2143a7b..e6e9d2c 100644
+--- a/tune-profiles/sap-hana-vmware/ktune.sysconfig
++++ b/tune-profiles/sap-hana-vmware/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="noop"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/sap-hana/ktune.sysconfig b/tune-profiles/sap-hana/ktune.sysconfig
+index 5248eec..dd23cc0 100644
+--- a/tune-profiles/sap-hana/ktune.sysconfig
++++ b/tune-profiles/sap-hana/ktune.sysconfig
+@@ -27,4 +27,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/sap-netweaver/ktune.sysconfig b/tune-profiles/sap-netweaver/ktune.sysconfig
+index 386df8d..69c3aae 100644
+--- a/tune-profiles/sap-netweaver/ktune.sysconfig
++++ b/tune-profiles/sap-netweaver/ktune.sysconfig
+@@ -28,7 +28,7 @@ SYSCTL_PRE="/etc/sysctl.d/* /etc/sysctl.conf"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+ 
+ # The following lines are for autodetection of SAP settings
+ SAP_MAIN_MEMORY_TOTAL=`awk '/MemTotal:/ {print $2}' /proc/meminfo`
+diff --git a/tune-profiles/server-powersave/ktune.sysconfig b/tune-profiles/server-powersave/ktune.sysconfig
+index faba34b..3b7f9aa 100644
+--- a/tune-profiles/server-powersave/ktune.sysconfig
++++ b/tune-profiles/server-powersave/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ #ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++#ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/throughput-performance/ktune.sysconfig b/tune-profiles/throughput-performance/ktune.sysconfig
+index 0099450..d17e52a 100644
+--- a/tune-profiles/throughput-performance/ktune.sysconfig
++++ b/tune-profiles/throughput-performance/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/virtual-guest/ktune.sysconfig b/tune-profiles/virtual-guest/ktune.sysconfig
+index 0099450..d17e52a 100644
+--- a/tune-profiles/virtual-guest/ktune.sysconfig
++++ b/tune-profiles/virtual-guest/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,vd,dasd,xvd}*/queue/scheduler"
+diff --git a/tune-profiles/virtual-host/ktune.sysconfig b/tune-profiles/virtual-host/ktune.sysconfig
+index a46ecfd..3a0ff86 100644
+--- a/tune-profiles/virtual-host/ktune.sysconfig
++++ b/tune-profiles/virtual-host/ktune.sysconfig
+@@ -24,4 +24,4 @@ SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ ELEVATOR="deadline"
+ 
+ # These are the devices, that should be tuned with the ELEVATOR
+-ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,dasd}*/queue/scheduler"
++ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss,dm-,dasd,xvd}*/queue/scheduler"
+-- 
+2.1.0
+

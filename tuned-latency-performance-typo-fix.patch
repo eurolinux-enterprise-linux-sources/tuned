@@ -1,0 +1,31 @@
+From a4be249193a1a8432d4b0c7f1691e9a83ec6741f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jaroslav=20=C5=A0karvada?= <jskarvad@redhat.com>
+Date: Mon, 9 Feb 2015 15:19:47 +0100
+Subject: [PATCH] latency-performance: fixed typo in SYSCTL_POST
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+resolves: rhbz#1064062
+
+Signed-off-by: Jaroslav Škarvada <jskarvad@redhat.com>
+---
+ tune-profiles/latency-performance/ktune.sysconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tune-profiles/latency-performance/ktune.sysconfig b/tune-profiles/latency-performance/ktune.sysconfig
+index 8f3f89a..cb6b21c 100644
+--- a/tune-profiles/latency-performance/ktune.sysconfig
++++ b/tune-profiles/latency-performance/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.conf /etc/syctl.d/*"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+-- 
+2.1.0
+

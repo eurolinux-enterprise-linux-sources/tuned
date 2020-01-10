@@ -1,0 +1,262 @@
+From e2b78c65e56eccec44c64d3b157a2141aa208a99 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jaroslav=20=C5=A0karvada?= <jskarvad@redhat.com>
+Date: Mon, 9 Feb 2015 14:22:21 +0100
+Subject: [PATCH] profiles: reversed SYSCTL_POST="/etc/sysctl.d/*
+ /etc/sysctl.conf"
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+This commit reversed it to read:
+SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+The idea is to go from implicit to explicit, i.e. from defaults
+to overrides in sysctl.d subdirectory. This behavior is
+expected in RHEL-6.
+
+But many distributions use the reverse approach (state before
+this commit). The idea is that /etc/sysctl.d/* hosts default
+settings provided by individual packages which can be overriden
+by "master" /etc/sysctl.conf.
+
+In Fedora (F20 checked) it is implemented by the following
+symlink:
+/etc/sysctl.d/99-sysctl.conf -> ../sysctl.conf
+
+So it is also effectively reversed in comparison to RHEL-6.
+
+As tuned-0.x is supported only in RHEL-6, we need to follow
+RHEL-6 behaviour in tuned-1.0 branch. This change doesn't
+affect tuned-2.x.
+
+resolves: rhbz#1036049
+
+Signed-off-by: Jaroslav Škarvada <jskarvad@redhat.com>
+---
+ ktune/README.ktune                                     | 4 ++--
+ ktune/ktune.sysconfig                                  | 2 +-
+ tune-profiles/default/ktune.sysconfig                  | 2 +-
+ tune-profiles/desktop-powersave/ktune.sysconfig        | 2 +-
+ tune-profiles/enterprise-storage/ktune.sysconfig       | 2 +-
+ tune-profiles/laptop-ac-powersave/ktune.sysconfig      | 2 +-
+ tune-profiles/laptop-battery-powersave/ktune.sysconfig | 2 +-
+ tune-profiles/latency-performance/ktune.sysconfig      | 2 +-
+ tune-profiles/sap-hana-vmware/ktune.sysconfig          | 2 +-
+ tune-profiles/sap-hana/ktune.sysconfig                 | 2 +-
+ tune-profiles/sap-netweaver/ktune.sysconfig            | 2 +-
+ tune-profiles/server-powersave/ktune.sysconfig         | 2 +-
+ tune-profiles/spindown-disk/ktune.sysconfig            | 2 +-
+ tune-profiles/throughput-performance/ktune.sysconfig   | 2 +-
+ tune-profiles/virtual-guest/ktune.sysconfig            | 2 +-
+ tune-profiles/virtual-host/ktune.sysconfig             | 2 +-
+ 18 files changed, 19 insertions(+), 19 deletions(-)
+
+diff --git a/ktune/README.ktune b/ktune/README.ktune
+index 16021c7..b8a98bf 100644
+--- a/ktune/README.ktune
++++ b/ktune/README.ktune
+@@ -48,8 +48,8 @@ service is enabled and started, it will use the configuration options from
+ 
+     SYSCTL="/etc/sysctl.ktune"
+     USE_KTUNE_D="yes"
+-    SYSCTL_PRE="/etc/sysctl.d/* /etc/sysctl.conf"
+-    SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++    SYSCTL_PRE="/etc/sysctl.conf /etc/sysctl.d/*"
++    SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+     ELEVATOR="deadline"
+     ELEVATOR_TUNE_DEVS="/sys/block/{sd,cciss}*/queue/scheduler"
+ 
+diff --git a/ktune/ktune.sysconfig b/ktune/ktune.sysconfig
+index 97c994f..c77f72c 100644
+--- a/ktune/ktune.sysconfig
++++ b/ktune/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/default/ktune.sysconfig b/tune-profiles/default/ktune.sysconfig
+index 2c6301c..145787c 100644
+--- a/tune-profiles/default/ktune.sysconfig
++++ b/tune-profiles/default/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/desktop-powersave/ktune.sysconfig b/tune-profiles/desktop-powersave/ktune.sysconfig
+index 64dcd04..3918908 100644
+--- a/tune-profiles/desktop-powersave/ktune.sysconfig
++++ b/tune-profiles/desktop-powersave/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/enterprise-storage/ktune.sysconfig b/tune-profiles/enterprise-storage/ktune.sysconfig
+index ac159fd..cb6b21c 100644
+--- a/tune-profiles/enterprise-storage/ktune.sysconfig
++++ b/tune-profiles/enterprise-storage/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/laptop-ac-powersave/ktune.sysconfig b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+index 64dcd04..3918908 100644
+--- a/tune-profiles/laptop-ac-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-ac-powersave/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/laptop-battery-powersave/ktune.sysconfig b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+index 64dcd04..3918908 100644
+--- a/tune-profiles/laptop-battery-powersave/ktune.sysconfig
++++ b/tune-profiles/laptop-battery-powersave/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/latency-performance/ktune.sysconfig b/tune-profiles/latency-performance/ktune.sysconfig
+index 299e34c..8f3f89a 100644
+--- a/tune-profiles/latency-performance/ktune.sysconfig
++++ b/tune-profiles/latency-performance/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/syctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/syctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/sap-hana-vmware/ktune.sysconfig b/tune-profiles/sap-hana-vmware/ktune.sysconfig
+index f0f08e7..8a16460 100644
+--- a/tune-profiles/sap-hana-vmware/ktune.sysconfig
++++ b/tune-profiles/sap-hana-vmware/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/sap-hana/ktune.sysconfig b/tune-profiles/sap-hana/ktune.sysconfig
+index 7b38eb7..ce49d08 100644
+--- a/tune-profiles/sap-hana/ktune.sysconfig
++++ b/tune-profiles/sap-hana/ktune.sysconfig
+@@ -16,7 +16,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/sap-netweaver/ktune.sysconfig b/tune-profiles/sap-netweaver/ktune.sysconfig
+index 0950bfb..2430ab1 100644
+--- a/tune-profiles/sap-netweaver/ktune.sysconfig
++++ b/tune-profiles/sap-netweaver/ktune.sysconfig
+@@ -17,7 +17,7 @@ SYSCTL_PRE="/etc/sysctl.d/* /etc/sysctl.conf"
+ 
+ # This is the custom sysctl configuration file. Any settings in this file will
+ # be applied after the ktune settings, overriding them
+-#SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++#SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use. This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/server-powersave/ktune.sysconfig b/tune-profiles/server-powersave/ktune.sysconfig
+index 64dcd04..3918908 100644
+--- a/tune-profiles/server-powersave/ktune.sysconfig
++++ b/tune-profiles/server-powersave/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/spindown-disk/ktune.sysconfig b/tune-profiles/spindown-disk/ktune.sysconfig
+index fd38649..0ad8c20 100644
+--- a/tune-profiles/spindown-disk/ktune.sysconfig
++++ b/tune-profiles/spindown-disk/ktune.sysconfig
+@@ -13,5 +13,5 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+diff --git a/tune-profiles/throughput-performance/ktune.sysconfig b/tune-profiles/throughput-performance/ktune.sysconfig
+index ac159fd..cb6b21c 100644
+--- a/tune-profiles/throughput-performance/ktune.sysconfig
++++ b/tune-profiles/throughput-performance/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/virtual-guest/ktune.sysconfig b/tune-profiles/virtual-guest/ktune.sysconfig
+index ac159fd..cb6b21c 100644
+--- a/tune-profiles/virtual-guest/ktune.sysconfig
++++ b/tune-profiles/virtual-guest/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+diff --git a/tune-profiles/virtual-host/ktune.sysconfig b/tune-profiles/virtual-host/ktune.sysconfig
+index e6dea0f..897f130 100644
+--- a/tune-profiles/virtual-host/ktune.sysconfig
++++ b/tune-profiles/virtual-host/ktune.sysconfig
+@@ -13,7 +13,7 @@ USE_KTUNE_D="yes"
+ # This is the custom sysctl configuration file.  Any settings in this file will
+ # be applied after the ktune settings, overriding them.  Comment this out to
+ # use only the ktune settings.
+-SYSCTL_POST="/etc/sysctl.d/* /etc/sysctl.conf"
++SYSCTL_POST="/etc/sysctl.conf /etc/sysctl.d/*"
+ 
+ # This is the I/O scheduler ktune will use.  This will *not* override anything
+ # explicitly set on the kernel command line, nor will it change the scheduler
+-- 
+2.1.0

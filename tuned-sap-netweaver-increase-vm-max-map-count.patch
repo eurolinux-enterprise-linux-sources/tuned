@@ -1,0 +1,28 @@
+From 03e2924b9bac1b13fb0c40c47f0c7343106afcb1 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jaroslav=20=C5=A0karvada?= <jskarvad@redhat.com>
+Date: Fri, 27 Feb 2015 17:44:59 +0100
+Subject: [PATCH 5/5] sap-netweaver: increased vm.max_map_count to 2000000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Resolves: rhbz#1174253
+
+Signed-off-by: Jaroslav Škarvada <jskarvad@redhat.com>
+---
+ tune-profiles/sap-netweaver/sysctl.ktune | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tune-profiles/sap-netweaver/sysctl.ktune b/tune-profiles/sap-netweaver/sysctl.ktune
+index d1a4ec9..d04cd84 100644
+--- a/tune-profiles/sap-netweaver/sysctl.ktune
++++ b/tune-profiles/sap-netweaver/sysctl.ktune
+@@ -29,4 +29,4 @@ vm.dirty_ratio = 40
+ kernel.shmall = >$SAP_SHMALL
+ kernel.shmmax = >$SAP_SHMMAX
+ kernel.sem = 1250 256000 100 8192
+-vm.max_map_count = 1000000
++vm.max_map_count = 2000000
+-- 
+2.1.0
+

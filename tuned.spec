@@ -3,7 +3,7 @@
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
 Version: 0.2.19
-Release: 13%{?dist}.1
+Release: 15%{?dist}
 License: GPLv2+
 Group: System Environment/Daemons
 # The source for this package was pulled from upstream git.  Use the
@@ -44,6 +44,11 @@ Patch28: tuned-add-sap.patch
 Patch29: tuned-virtual-host-sched-migration-cost.patch
 Patch30: tuned-functions-fix.patch
 Patch31: tuned-customizable-elevator.patch
+Patch32: tuned-reverse-sysctl-post.patch
+Patch33: tuned-latency-performance-typo-fix.patch
+Patch34: tuned-dasd.patch
+Patch35: tuned-xvd.patch
+Patch36: tuned-sap-netweaver-increase-vm-max-map-count.patch
 
 URL: https://fedorahosted.org/tuned/
 Buildroot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
@@ -121,6 +126,11 @@ Additional tuned profile(s) targeted to SAP HANA loads.
 %patch29 -p1
 %patch30 -p1
 %patch31 -p1
+%patch32 -p1
+%patch33 -p1
+%patch34 -p1
+%patch35 -p1
+%patch36 -p1
 
 # fix permissions on ktune scripts (some were created by the patches)
 chmod 0755 tune-profiles/*/ktune.sh
@@ -160,7 +170,7 @@ fi
 %defattr(-,root,root,-)
 %doc AUTHORS ChangeLog COPYING INSTALL NEWS README doc/DESIGN.txt doc/TIPS.txt ktune/README.ktune doc/examples
 %{_initddir}/tuned
-%config(noreplace) %{_sysconfdir}/tuned.conf
+%config(noreplace) %verify(not link) %{_sysconfdir}/tuned.conf
 %config(noreplace) %{_sysconfdir}/pam.d/tuned-adm
 %config(noreplace) %{_sysconfdir}/security/console.apps/tuned-adm
 %{_sysconfdir}/bash_completion.d
@@ -168,7 +178,7 @@ fi
 %{_sbindir}/tuned-adm
 # consolehelper hard link
 %{_bindir}/tuned-adm
-%config(noreplace) %{_sysconfdir}/tune-profiles/active-profile
+%config(noreplace) %verify(not size mtime md5) %{_sysconfdir}/tune-profiles/active-profile
 %{_sysconfdir}/tune-profiles
 %exclude %{_sysconfdir}/tune-profiles/sap-netweaver
 %exclude %{_sysconfdir}/tune-profiles/sap-hana
@@ -179,8 +189,8 @@ fi
 %{_mandir}/man7/tuned-profiles.7*
 %{_mandir}/man8/tuned.*
 %attr(0755,root,root) %{_initddir}/ktune
-%config(noreplace) %{_sysconfdir}/sysconfig/ktune
-%config(noreplace) %{_sysconfdir}/ktune.d/tunedadm.conf
+%config(noreplace) %verify(not link) %{_sysconfdir}/sysconfig/ktune
+%config(noreplace) %verify(not link) %{_sysconfdir}/ktune.d/tunedadm.conf
 %dir %{_sysconfdir}/ktune.d
 %dir %{_localstatedir}/log/tuned
 %dir %{_localstatedir}/run/tuned
@@ -218,9 +228,24 @@ fi
 %{_mandir}/man7/tuned-profiles-sap-hana.7*
 
 %changelog
-* Wed Oct 15 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-13.1
+* Mon Feb  9 2015 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-15
+- dynamically changing symlinks excluded from the RPM verification
+  resolves: rhbz#1017366
+- reversed reading of sysctl configuration in SYSCTL_POST to follow
+  RHEL-6 behavior
+  resolves: rhbz#1036049
+- fixed typo in latency-performance profile regarding SYSCTL_POST
+  resolves: rhbz#1064062
+- added support for s390 block devices (/dev/dasd)
+  resolves: rhbz#1129936
+- added support for Xen VS devices (/dev/xvd)
+  resolves: rhbz#1159963
+- increased vm.max_map_count in sap-netweaver profile
+  resolves: rhbz#1174253
+
+* Wed Oct 15 2014 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-14
 - updated sap profiles and moved them to subpackages
-  resolves: rhbz#1153063
+  resolves: rhbz#1058389
 
 * Mon Jul 22 2013 Jaroslav Škarvada <jskarvad@redhat.com> - 0.2.19-13
 - add support for upstream THP
