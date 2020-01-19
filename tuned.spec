@@ -7,7 +7,7 @@
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
 Version: 2.10.0
-Release: 6%{?prerel1}%{?dist}
+Release: 6%{?prerel1}%{?dist}.3
 License: GPLv2+
 Source: https://github.com/redhat-performance/%{name}/archive/v%{version}%{?prerel2}.tar.gz#/%{name}-%{version}%{?prerel2}.tar.gz
 URL: http://www.tuned-project.org/
@@ -24,6 +24,8 @@ Requires: python-schedutils
 Patch0: tuned-2.10.0-gtk-3.8.patch
 Patch1: tuned-2.10.0-use-online-cpus.patch
 Patch2: tuned-2.10.0-realtime-virtual-enable-rt-entsk.patch
+Patch3: tuned-2.10.0-disable-ksm-once.patch
+Patch4: tuned-2.10.0-update-kvm-modprobe-file.patch
 
 %description
 The tuned package contains a daemon that tunes system settings dynamically.
@@ -160,6 +162,8 @@ It can be also used to fine tune your system for specific scenarios.
 %patch0 -p1
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
+%patch4 -p1
 # workaround for https://bugzilla.redhat.com/show_bug.cgi?id=1626473
 chmod 0755 profiles/realtime-virtual-guest/script.sh
 
@@ -412,6 +416,18 @@ fi
 %{_mandir}/man7/tuned-profiles-compat.7*
 
 %changelog
+* Tue Nov 27 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.3
+- Reworked setup_kvm_mod_low_latency to count with kernel changes
+  Resolves: rhbz#1653767
+
+* Tue Nov 27 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.2
+- Updated disable-ksm-once patch
+  Related: rhbz#1652822
+
+* Fri Nov 23 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.1
+- Disable ksm once, re-enable it on full rollback
+  Resolves: rhbz#1652822
+
 * Fri Sep  7 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6
 - Added workaround for rpmbuild bug 1626473
   related: rhbz#1616043
