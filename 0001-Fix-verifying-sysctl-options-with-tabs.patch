@@ -1,0 +1,26 @@
+From b6eb3416eac4e8ca21ae7d65ca9a79f18e078af7 Mon Sep 17 00:00:00 2001
+From: kbotc <kbotc@mac.com>
+Date: Tue, 14 May 2019 16:45:22 -0600
+Subject: [PATCH] Fix verifying sysctl options with tabs
+
+sysctl options such as net.ipv4.tcp_wmem and net.ipv4.tcp_rmem include tabs. When you use tuned-adm verify, the changes report back as broken as the whitespaces are different because one side has been sanitized but the other side has not. This pull request will fix that.
+---
+ tuned/plugins/plugin_sysctl.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tuned/plugins/plugin_sysctl.py b/tuned/plugins/plugin_sysctl.py
+index 9088bf0..537c896 100644
+--- a/tuned/plugins/plugin_sysctl.py
++++ b/tuned/plugins/plugin_sysctl.py
+@@ -76,7 +76,7 @@ class SysctlPlugin(base.Plugin):
+ 			curr_val = _read_sysctl(option)
+ 			value = self._process_assignment_modifiers(self._variables.expand(value), curr_val)
+ 			if value is not None:
+-				if self._verify_value(option, self._cmd.remove_ws(value), curr_val, ignore_missing) == False:
++				if self._verify_value(option, self._cmd.remove_ws(value), self._cmd.remove_ws(curr_val), ignore_missing) == False:
+ 					ret = False
+ 		return ret
+ 
+-- 
+2.20.1
+

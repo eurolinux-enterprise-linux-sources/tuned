@@ -7,6 +7,7 @@ from tuned.profiles.exceptions import InvalidProfileException
 import tuned.consts as consts
 from tuned.utils.commands import commands
 from tuned import exports
+from tuned.utils.profile_recommender import ProfileRecommender
 import re
 
 log = tuned.logs.get()
@@ -57,6 +58,10 @@ class Daemon(object):
 		self._not_used = threading.Event()
 		self._not_used.set()
 		self._profile_applied = threading.Event()
+
+	def reload_profile_config(self):
+		"""Read configuration files again and load profile according to them"""
+		self._init_profile(None)
 
 	def _init_profile(self, profile_names):
 		manual = True
@@ -173,8 +178,11 @@ class Daemon(object):
 			# do full cleanup
 			full_rollback = False
 			if self._full_rollback_required():
-				log.info("terminating Tuned, rolling back all changes")
-				full_rollback = True
+				if self._daemon:
+					log.info("terminating Tuned, rolling back all changes")
+					full_rollback = True
+				else:
+					log.info("terminating Tuned in one-shot mode")
 			else:
 				log.info("terminating Tuned due to system shutdown / reboot")
 		if self._daemon:
@@ -189,7 +197,7 @@ class Daemon(object):
 
 	def _get_recommended_profile(self):
 		log.info("Running in automatic mode, checking what profile is recommended for your configuration.")
-		profile = self._cmd.recommend_profile(hardcoded = not self._recommend_command)
+		profile = ProfileRecommender().recommend(hardcoded = not self._recommend_command)
 		log.info("Using '%s' profile" % profile)
 		return profile
 
@@ -200,6 +208,37 @@ class Daemon(object):
 		if not manual:
 			profile = self._get_recommended_profile()
 		return profile, manual
+
+	def get_all_plugins(self):
+		"""Return all accessible plugin classes"""
+		return self._unit_manager.plugins_repository.load_all_plugins()
+
+	def get_plugin_documentation(self, plugin_name):
+		"""Return plugin class docstring"""
+		try:
+			plugin_class = self._unit_manager.plugins_repository.load_plugin(
+				plugin_name
+			)
+		except ImportError:
+			return ""
+		return plugin_class.__doc__
+
+	def get_plugin_hints(self, plugin_name):
+		"""Return plugin's parameters and their hints
+
+		Parameters:
+		plugin_name -- plugins name
+
+		Return:
+		dictionary -- {parameter_name: hint}
+		"""
+		try:
+			plugin_class = self._unit_manager.plugins_repository.load_plugin(
+				plugin_name
+			)
+		except ImportError:
+			return {}
+		return plugin_class.get_config_options_hints()
 
 	def is_enabled(self):
 		return self._profile is not None

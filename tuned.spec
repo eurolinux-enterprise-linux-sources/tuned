@@ -6,27 +6,29 @@
 
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
-Version: 2.10.0
-Release: 6%{?prerel1}%{?dist}.4
+Version: 2.11.0
+Release: 5%{?prerel1}%{?dist}
 License: GPLv2+
 Source: https://github.com/redhat-performance/%{name}/archive/v%{version}%{?prerel2}.tar.gz#/%{name}-%{version}%{?prerel2}.tar.gz
 URL: http://www.tuned-project.org/
 BuildArch: noarch
-BuildRequires: python, systemd, desktop-file-utils
+BuildRequires: python, python-devel, systemd, desktop-file-utils
 Requires(post): systemd, virt-what
 Requires(preun): systemd
 Requires(postun): systemd
 Requires: python-decorator, dbus-python, pygobject3-base, python-pyudev
-# kernel-tools, hdparm dependencies are not met on s390
+# kernel-tools, hdparm, python-dmidecode dependencies are not met on s390
 Requires: virt-what, python-configobj, ethtool, gawk
 Requires: util-linux, python-perf, dbus, polkit, python-linux-procfs
 Requires: python-schedutils
-Patch0: tuned-2.10.0-gtk-3.8.patch
-Patch1: tuned-2.10.0-use-online-cpus.patch
-Patch2: tuned-2.10.0-realtime-virtual-enable-rt-entsk.patch
-Patch3: tuned-2.10.0-disable-ksm-once.patch
-Patch4: tuned-2.10.0-update-kvm-modprobe-file.patch
-Patch5: tuned-2.10.0-realtime-virtual-host-pin-only-vcpu-thread-to-isolated-pcpu.patch
+# Upstream patch:
+Patch1: 0001-virtual-host-Fix-setting-force_latency.patch
+# Upstream patch:
+Patch2: 0001-functions-Return-an-ordered-cpu-list-in-cpulist_onli.patch
+# Upstream patch:
+Patch3: 0001-Fix-verifying-sysctl-options-with-tabs.patch
+# Upstream patch:
+Patch4: 0001-sysctl-Ignore-non-existent-settings-from-system-sysc.patch
 
 %description
 The tuned package contains a daemon that tunes system settings dynamically.
@@ -160,21 +162,17 @@ It can be also used to fine tune your system for specific scenarios.
 
 %prep
 %setup -q -n %{name}-%{version}%{?prerel2}
-%patch0 -p1
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
-%patch5 -p1
 
-# workaround for https://bugzilla.redhat.com/show_bug.cgi?id=1626473
-chmod 0755 profiles/realtime-virtual-guest/script.sh
 
 %build
 
 
 %install
-make install DESTDIR=%{buildroot} DOCDIR=%{docdir} PYTHON=python2
+make install DESTDIR=%{buildroot} DOCDIR=%{docdir} PYTHON=%{__python2}
 %if 0%{?rhel}
 sed -i 's/\(dynamic_tuning[ \t]*=[ \t]*\).*/\10/' %{buildroot}%{_sysconfdir}/tuned/tuned-main.conf
 %endif
@@ -192,10 +190,11 @@ mkdir -p %{buildroot}%{_var}/lib/tuned
 mkdir -p %{buildroot}%{_sysconfdir}/modprobe.d
 touch %{buildroot}%{_sysconfdir}/modprobe.d/kvm.rt.tuned.conf
 
+# BLS not supported, no need to install kernel hooks
+rm -rf %{buildroot}%{_prefix}/lib/kernel
+
 # validate desktop file
 desktop-file-validate %{buildroot}%{_datadir}/applications/tuned-gui.desktop
-
-mkdir -p %{buildroot}%{_sysconfdir}/tuned/recommend.d
 
 %post
 %systemd_post tuned.service
@@ -328,7 +327,6 @@ fi
 %{_sbindir}/tuned-gui
 %{python_sitelib}/tuned/gtk
 %{_datadir}/tuned/ui
-%{_datadir}/polkit-1/actions/com.redhat.tuned.gui.policy
 %{_datadir}/icons/hicolor/scalable/apps/tuned.svg
 %{_datadir}/applications/tuned-gui.desktop
 
@@ -419,21 +417,67 @@ fi
 %{_mandir}/man7/tuned-profiles-compat.7*
 
 %changelog
-* Wed Jul 10 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.4
-- realtime-virtual-host: pin only the vcpu thread to isolated pcpu
-  Resolves: rhbz#1728699
+* Fri Jun 07 2019 Ondřej Lysoněk <olysonek@redhat.com> - 2.11.0-5
+- Ignore non-existent settings from system sysctl configs
+- Resolves: rhbz#1714595
 
-* Tue Nov 27 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.3
-- Reworked setup_kvm_mod_low_latency to count with kernel changes
-  Resolves: rhbz#1653767
+* Fri May 17 2019 Ondřej Lysoněk <olysonek@redhat.com> - 2.11.0-4
+- Fixed verification of sysctl parameters whose values contain tabs
+- Resolves: rhbz#1711230
 
-* Tue Nov 27 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.2
+* Tue May 14 2019 Ondřej Lysoněk <olysonek@redhat.com> - 2.11.0-3
+- Fixed assertion that isolated_cores contain online CPUs
+- Resolves: rhbz#1706171
+
+* Thu Apr 25 2019 Ondřej Lysoněk <olysonek@redhat.com> - 2.11.0-2
+- Fix setting force_latency in the virtual-host profile
+- Resolves: rhbz#1569375
+
+* Thu Mar 21 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2.11.0-1
+- new release
+  - rebased tuned to latest upstream
+    related: rhbz#1643654
+  - used dmidecode only on x86 architectures
+    resolves: rhbz#1688371
+  - recommend: fixed to work without tuned daemon running
+    resolves: rhbz#1687397
+
+* Sun Mar 10 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2.11.0-0.1.rc1
+- new release
+  - rebased tuned to latest upstream
+    resolves: rhbz#1643654
+  - disable KSM only once, re-enable it only on full rollback
+    resolves: rhbz#1622239
+  - functions: reworked setup_kvm_mod_low_latency to count with kernel changes
+    resolves: rhbz#1649408
+  - updated virtual-host profile
+    resolves: rhbz#1569375
+  - added log message for unsupported parameters in plugin_net
+    resolves: rhbz#1533852
+  - added range feature for cpu exclusion
+    resolves: rhbz#1533908
+  - make a copy of devices when verifying tuning
+    resolves: rhbz#1592743
+  - fixed disk plugin/plugout problem
+    resolves: rhbz#1595156
+  - fixed unit configuration reading
+    resolves: rhbz#1613379
+  - reload profile configuration on SIGHUP
+    resolves: rhbz#1631744
+  - use built-in functionality to apply system sysctl
+    resolves: rhbz#1663412
+
+* Tue Nov 27 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-9
 - Updated disable-ksm-once patch
-  Related: rhbz#1652822
+  Related: rhbz#1622239
 
-* Fri Nov 23 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6.1
+* Thu Nov 22 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-8
+- Reworked setup_kvm_mod_low_latency to count with kernel changes
+  Resolves: rhbz#1649408
+
+* Thu Nov 22 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-7
 - Disable ksm once, re-enable it on full rollback
-  Resolves: rhbz#1652822
+  Resolves: rhbz#1622239
 
 * Fri Sep  7 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-6
 - Added workaround for rpmbuild bug 1626473

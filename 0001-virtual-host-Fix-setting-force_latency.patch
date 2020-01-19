@@ -1,0 +1,33 @@
+From 96363628f728f296d2efc69d1d3914afdfbbb844 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ond=C5=99ej=20Lyson=C4=9Bk?= <olysonek@redhat.com>
+Date: Thu, 25 Apr 2019 10:42:03 +0200
+Subject: [PATCH] virtual-host: Fix setting force_latency
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The force_latency parameter belongs to the cpu plugin, so that's the
+section it needs to be in.
+
+Fixes #132
+Resolves: rhbz#1569375
+
+Signed-off-by: Ondřej Lysoněk <olysonek@redhat.com>
+---
+ profiles/virtual-host/tuned.conf | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/profiles/virtual-host/tuned.conf b/profiles/virtual-host/tuned.conf
+index 7bd3330..ca493d6 100644
+--- a/profiles/virtual-host/tuned.conf
++++ b/profiles/virtual-host/tuned.conf
+@@ -16,5 +16,6 @@ vm.dirty_background_ratio = 5
+ # (system default is 500000, i.e. 0.5 ms)
+ kernel.sched_migration_cost_ns = 5000000
+ 
++[cpu]
+ # Setting C3 state sleep mode/power savings
+ force_latency=70
+-- 
+2.20.1
+

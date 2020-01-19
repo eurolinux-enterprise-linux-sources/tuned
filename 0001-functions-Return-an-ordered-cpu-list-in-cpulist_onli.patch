@@ -1,0 +1,32 @@
+From e0bf0252a45a60b9cf4d359c3bf171baed28ba70 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Ond=C5=99ej=20Lyson=C4=9Bk?= <olysonek@redhat.com>
+Date: Thu, 9 May 2019 10:23:07 +0200
+Subject: [PATCH] functions: Return an ordered cpu list in cpulist_online
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+cpulist_unpack, which is used in the function, returns an ordered cpu
+list, however by converting it to a set, the order is lost. Rewrite the
+operation in a way that preserves the order.
+
+Resolves: rhbz#1706171
+
+Signed-off-by: Ondřej Lysoněk <olysonek@redhat.com>
+---
+ tuned/profiles/functions/function_cpulist_online.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/tuned/profiles/functions/function_cpulist_online.py b/tuned/profiles/functions/function_cpulist_online.py
+index 1badf3d..64d930c 100644
+--- a/tuned/profiles/functions/function_cpulist_online.py
++++ b/tuned/profiles/functions/function_cpulist_online.py
+@@ -19,4 +19,4 @@ class cpulist_online(base.Function):
+ 			return None
+ 		cpus = self._cmd.cpulist_unpack(",".join(args))
+ 		online = self._cmd.cpulist_unpack(self._cmd.read_file("/sys/devices/system/cpu/online"))
+-		return ",".join(str(v) for v in set(cpus).intersection(set(online)))
++		return ",".join(str(v) for v in cpus if v in online)
+-- 
+2.20.1
+

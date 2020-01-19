@@ -41,13 +41,18 @@
 
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
-Version: 2.10.0
+Version: 2.11.0
 Release: 1%{?prerel1}%{?with_snapshot:.%{git_suffix}}%{?dist}
 License: GPLv2+
-Source0: https://github.com/redhat-performance/%{name}/archive/v%{version}%{?prerel2}.tar.gz#/%{name}-%{version}%{?prerel1}.tar.gz
+Source0: https://github.com/redhat-performance/%{name}/archive/v%{version}%{?prerel2}/%{name}-%{version}%{?prerel2}.tar.gz
 URL: http://www.tuned-project.org/
 BuildArch: noarch
 BuildRequires: systemd, desktop-file-utils
+%if 0%{?rhel}
+BuildRequires: asciidoc
+%else
+BuildRequires: asciidoctor
+%endif
 Requires(post): systemd, virt-what
 Requires(preun): systemd
 Requires(postun): systemd
@@ -57,13 +62,22 @@ Requires: %{_py}-schedutils, %{_py}-linux-procfs, %{_py}-perf
 # requires for packages with inconsistent python2/3 names
 %if %{with python3}
 Requires: python3-dbus, python3-gobject-base
+%if 0%{?fedora} > 22 || 0%{?rhel} > 7
+Recommends: python3-dmidecode
+%endif
 %else
 Requires: dbus-python, pygobject3-base
+%if 0%{?fedora} > 22 || 0%{?rhel} > 7
+Recommends: python-dmidecode
+%endif
 %endif
 Requires: virt-what, ethtool, gawk, hdparm
 Requires: util-linux, dbus, polkit
 %if 0%{?fedora} > 22 || 0%{?rhel} > 7
 Recommends: kernel-tools
+%endif
+%if 0%{?rhel} > 7
+Requires: python3-syspurpose
 %endif
 
 %description
@@ -211,17 +225,21 @@ It can be also used to fine tune your system for specific scenarios.
 %setup -q -n %{name}-%{version}%{?prerel2}
 
 %build
+make html
 
 %install
 make install DESTDIR=%{buildroot} DOCDIR=%{docdir} \
 %if %{with python3}
-	PYTHON=python3
+	PYTHON=%{__python3}
 %else
-	PYTHON=python2
+	PYTHON=%{__python2}
 %endif
 %if 0%{?rhel}
 sed -i 's/\(dynamic_tuning[ \t]*=[ \t]*\).*/\10/' %{buildroot}%{_sysconfdir}/tuned/tuned-main.conf
 %endif
+
+# manual
+make install-html DESTDIR=%{buildroot} DOCDIR=%{docdir}
 
 # conditional support for grub2, grub2 is not available on all architectures
 # and tuned is noarch package, thus the following hack is needed
@@ -273,6 +291,24 @@ if [ "$1" == 0 ]; then
   if [ -r "%{_sysconfdir}/default/grub" ]; then
     sed -i '/GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT:+$GRUB_CMDLINE_LINUX_DEFAULT }\\$tuned_params"/d' %{_sysconfdir}/default/grub
   fi
+
+# cleanup for Boot loader specification (BLS)
+
+# clear grubenv variables
+  grub2-editenv - unset tuned_params tuned_initrd &>/dev/null || :
+# unpatch BLS entries
+  MACHINE_ID=`cat /etc/machine-id 2>/dev/null`
+  if [ "$MACHINE_ID" ]
+  then
+    for f in /boot/loader/entries/$MACHINE_ID-*.conf
+    do
+      if [ -f "$f" -a "${f: -12}" != "-rescue.conf" ]
+      then
+        sed -i '/^\s*options\s\+.*\$tuned_params/ s/\s\+\$tuned_params\b//g' "$f" &>/dev/null || :
+        sed -i '/^\s*initrd\s\+.*\$tuned_initrd/ s/\s\+\$tuned_initrd\b//g' "$f" &>/dev/null || :
+      fi
+    done
+  fi
 fi
 
 
@@ -290,21 +326,6 @@ if [ -d %{_sysconfdir}/grub.d ]; then
   selinuxenabled &>/dev/null && \
     restorecon %{_sysconfdir}/grub.d/00_tuned &>/dev/null || :
 fi
-
-
-%post gtk
-/bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null || :
-
-
-%postun gtk
-if [ $1 -eq 0 ] ; then
-    /bin/touch --no-create %{_datadir}/icons/hicolor &>/dev/null
-    /usr/bin/gtk-update-icon-cache -f %{_datadir}/icons/hicolor &>/dev/null || :
-fi
-
-
-%posttrans gtk
-/usr/bin/gtk-update-icon-cache -f %{_datadir}/icons/hicolor &>/dev/null || :
 
 
 %files
@@ -369,6 +390,7 @@ fi
 %{_datadir}/tuned/grub2
 %{_datadir}/polkit-1/actions/com.redhat.tuned.policy
 %ghost %{_sysconfdir}/modprobe.d/kvm.rt.tuned.conf
+%{_prefix}/lib/kernel/install.d/92-tuned.install
 
 %files gtk
 %defattr(-,root,root,-)
@@ -379,7 +401,6 @@ fi
 %{python2_sitelib}/tuned/gtk
 %endif
 %{_datadir}/tuned/ui
-%{_datadir}/polkit-1/actions/com.redhat.tuned.gui.policy
 %{_datadir}/icons/hicolor/scalable/apps/tuned.svg
 %{_datadir}/applications/tuned-gui.desktop
 
@@ -470,6 +491,58 @@ fi
 %{_mandir}/man7/tuned-profiles-compat.7*
 
 %changelog
+* Thu Mar 21 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2.11.0-1
+- new release
+  - rebased tuned to latest upstream
+    related: rhbz#1643654
+  - used dmidecode only on x86 architectures
+    resolves: rhbz#1688371
+  - recommend: fixed to work without tuned daemon running
+    resolves: rhbz#1687397
+
+* Sun Mar 10 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2.11.0-0.1.rc1
+- new release
+  - rebased tuned to latest upstream
+    resolves: rhbz#1643654
+  - use online CPUs for cpusets calculations instead of present CPUs
+    resolves: rhbz#1613478
+  - realtime-virtual-guest: run script.sh
+    related: rhbz#1616043
+  - make python-dmidecode a weak dependency
+    resolves: rhbz#1565598
+  - make virtual-host identical to latency-performance
+    resolves: rhbz#1588932
+  - added support for Boot loader specification (BLS)
+    resolves: rhbz#1576435
+  - scheduler: keep polling file objects alive long enough
+    resolves: rhbz#1659140
+  - mssql: updated tuning
+    resolves: rhbz#1660178
+  - s2kb: fixed to be compatible with python3
+    resolves: rhbz#1684122
+  - profiles: fallback to the 'powersave' scaling governor
+    resolves: rhbz#1679205
+  - disable KSM only once, re-enable it only on full rollback
+    resolves: rhbz#1622239
+  - functions: reworked setup_kvm_mod_low_latency to count with kernel changes
+    resolves: rhbz#1649408
+  - updated virtual-host profile
+    resolves: rhbz#1569375
+  - added log message for unsupported parameters in plugin_net
+    resolves: rhbz#1533852
+  - added range feature for cpu exclusion
+    resolves: rhbz#1533908
+  - make a copy of devices when verifying tuning
+    resolves: rhbz#1592743
+  - fixed disk plugin/plugout problem
+    resolves: rhbz#1595156
+  - fixed unit configuration reading
+    resolves: rhbz#1613379
+  - reload profile configuration on SIGHUP
+    resolves: rhbz#1631744
+  - use built-in functionality to apply system sysctl
+    resolves: rhbz#1663412
+
 * Wed Jul  4 2018 Jaroslav Škarvada <jskarvad@redhat.com> - 2.10.0-1
 - new release
   - rebased tuned to latest upstream

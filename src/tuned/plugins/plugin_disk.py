@@ -25,6 +25,7 @@ class DiskPlugin(hotplug.Plugin):
 		self._cmd = commands()
 
 	def _init_devices(self):
+		super(DiskPlugin, self)._init_devices()
 		self._devices_supported = True
 		self._free_devices = set()
 		for device in self._hardware_inventory.get_devices("block"):
@@ -39,7 +40,7 @@ class DiskPlugin(hotplug.Plugin):
 	@classmethod
 	def _device_is_supported(cls, device):
 		return  device.device_type == "disk" and \
-			device.attributes.get("removable", None) == "0" and \
+			device.attributes.get("removable", None) == b"0" and \
 			(device.parent is None or \
 					device.parent.subsystem in ["scsi", "virtio", "xen"])
 
@@ -50,7 +51,7 @@ class DiskPlugin(hotplug.Plugin):
 		self._hardware_inventory.unsubscribe(self)
 
 	def _hardware_events_callback(self, event, device):
-		if self._device_is_supported(device):
+		if self._device_is_supported(device) or event == "remove":
 			super(DiskPlugin, self)._hardware_events_callback(event, device)
 
 	def _added_device_apply_tuning(self, instance, device_name):
@@ -90,7 +91,9 @@ class DiskPlugin(hotplug.Plugin):
 
 		if self._option_bool(instance.options["dynamic"]):
 			instance._has_dynamic_tuning = True
-			instance._load_monitor = self._monitors_repository.create("disk", instance.devices)
+			instance._load_monitor = \
+					self._monitors_repository.create(
+					"disk", instance.assigned_devices)
 			instance._device_idle = {}
 			instance._stats = {}
 			instance._idle = {}
