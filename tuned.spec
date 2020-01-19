@@ -7,7 +7,7 @@
 Summary: A dynamic adaptive system tuning daemon
 Name: tuned
 Version: 2.11.0
-Release: 5%{?prerel1}%{?dist}
+Release: 5%{?prerel1}%{?dist}.1
 License: GPLv2+
 Source: https://github.com/redhat-performance/%{name}/archive/v%{version}%{?prerel2}.tar.gz#/%{name}-%{version}%{?prerel2}.tar.gz
 URL: http://www.tuned-project.org/
@@ -29,6 +29,7 @@ Patch2: 0001-functions-Return-an-ordered-cpu-list-in-cpulist_onli.patch
 Patch3: 0001-Fix-verifying-sysctl-options-with-tabs.patch
 # Upstream patch:
 Patch4: 0001-sysctl-Ignore-non-existent-settings-from-system-sysc.patch
+Patch5: tuned-2.11.0-sysctl-modifiers-traceback-fix.patch
 
 %description
 The tuned package contains a daemon that tunes system settings dynamically.
@@ -166,6 +167,7 @@ It can be also used to fine tune your system for specific scenarios.
 %patch2 -p1
 %patch3 -p1
 %patch4 -p1
+%patch5 -p1
 
 
 %build
@@ -417,6 +419,12 @@ fi
 %{_mandir}/man7/tuned-profiles-compat.7*
 
 %changelog
+* Fri Aug  9 2019 Jaroslav Škarvada <jskarvad@redhat.com> - 2.11.0-5.1
+- plugin_sysctl: fixed traceback when assignments modifiers ('<', '>')
+  are used with sysctl and the current sysctl value is the same as
+  the new value
+  Resolves: rhbz#1739563
+
 * Fri Jun 07 2019 Ondřej Lysoněk <olysonek@redhat.com> - 2.11.0-5
 - Ignore non-existent settings from system sysctl configs
 - Resolves: rhbz#1714595

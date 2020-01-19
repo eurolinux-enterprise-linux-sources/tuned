@@ -1,0 +1,45 @@
+From a8f2a8306e1bac6cfc739e6753d381bf509c995e Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Jaroslav=20=C5=A0karvada?= <jskarvad@redhat.com>
+Date: Fri, 9 Aug 2019 11:40:48 +0200
+Subject: [PATCH] plugin_sysctl: fixed traceback with modifiers '>', '<' and
+ orig==new
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+It fixed the following problem e.g. the profile:
+[sysctl]
+kernel.pid_max=>131072
+
+and if kernel.pid_max is already 131072 Tuned shows traceback.
+
+Resolves: rhbz#1739418
+
+Signed-off-by: Jaroslav Škarvada <jskarvad@redhat.com>
+---
+ tuned/plugins/plugin_sysctl.py | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/tuned/plugins/plugin_sysctl.py b/tuned/plugins/plugin_sysctl.py
+index bcaead2..b298bfa 100644
+--- a/tuned/plugins/plugin_sysctl.py
++++ b/tuned/plugins/plugin_sysctl.py
+@@ -54,12 +54,13 @@ class SysctlPlugin(base.Plugin):
+ 				log.error("sysctl option %s will not be set, failed to read the original value."
+ 						% option)
+ 			else:
+-				instance._sysctl_original[option] = original_value
+ 				new_value = self._variables.expand(
+ 						self._cmd.unquote(value))
+ 				new_value = self._process_assignment_modifiers(
+ 						new_value, original_value)
+-				_write_sysctl(option, new_value)
++				if new_value is not None:
++					instance._sysctl_original[option] = original_value
++					_write_sysctl(option, new_value)
+ 
+ 		storage_key = self._storage_key(instance.name)
+ 		self._storage.set(storage_key, instance._sysctl_original)
+-- 
+2.20.1
+
