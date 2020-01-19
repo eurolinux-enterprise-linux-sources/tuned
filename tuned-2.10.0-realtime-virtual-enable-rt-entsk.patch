@@ -1,0 +1,94 @@
+From 837c6bd12a5eedc3fbf46291bf1040e724786efd Mon Sep 17 00:00:00 2001
+From: Marcelo Tosatti <mtosatti@redhat.com>
+Date: Fri, 31 Aug 2018 13:27:12 +0200
+Subject: [PATCH] start/stop rt-entsk daemon on initialization/shutdown
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+The rt-entsk application, part of newer rt-setup packages,
+worksaround a latency issue with static key
+IPI's. What it does it:
+
+/*
+ * Open a socket, and enable timestamping on it.
+ *
+ * This is to avoid Chrony from changing timestamping
+ * user count from 0->1 and vice-versa, causing
+ * static key enable/disable IPIs.
+ *
+ */
+
+Start/stop the systemctl service from the realtime-virtual-host
+and realtime-virtual-guest profiles.
+
+Signed-off-by: Marcelo Tosatti <mtosatti@redhat.com>
+Signed-off-by: Jaroslav Škarvada <jskarvad@redhat.com>
+---
+ profiles/realtime-virtual-guest/script.sh  | 19 +++++++++++++++++++
+ profiles/realtime-virtual-guest/tuned.conf |  3 +++
+ profiles/realtime-virtual-host/script.sh   |  2 ++
+ 3 files changed, 24 insertions(+)
+ create mode 100755 profiles/realtime-virtual-guest/script.sh
+
+diff --git a/profiles/realtime-virtual-guest/script.sh b/profiles/realtime-virtual-guest/script.sh
+new file mode 100755
+index 0000000..33cb730
+--- /dev/null
++++ b/profiles/realtime-virtual-guest/script.sh
+@@ -0,0 +1,19 @@
++#!/bin/sh
++
++. /usr/lib/tuned/functions
++
++start() {
++    systemctl start rt-entsk
++    return "$?"
++}
++
++stop() {
++    systemctl stop rt-entsk
++    return "$?"
++}
++
++verify() {
++    return "$?"
++}
++
++process $@
+diff --git a/profiles/realtime-virtual-guest/tuned.conf b/profiles/realtime-virtual-guest/tuned.conf
+index fb2bc42..8e1f67e 100644
+--- a/profiles/realtime-virtual-guest/tuned.conf
++++ b/profiles/realtime-virtual-guest/tuned.conf
+@@ -36,5 +36,8 @@ group.ktimersoftd=0:f:3:*:ktimersoftd.*
+ 
+ ps_blacklist=ksoftirqd.*;rcuc.*;rcub.*;ktimersoftd.*
+ 
++[script]
++script=${i:PROFILE_DIR}/script.sh
++
+ [bootloader]
+ cmdline_rvg=+nohz=on nohz_full=${isolated_cores} rcu_nocbs=${isolated_cores}
+diff --git a/profiles/realtime-virtual-host/script.sh b/profiles/realtime-virtual-host/script.sh
+index 515d254..a9366cb 100755
+--- a/profiles/realtime-virtual-host/script.sh
++++ b/profiles/realtime-virtual-host/script.sh
+@@ -87,6 +87,7 @@ start() {
+     if [ -f $CACHE_VALUE_FILE ]; then
+         echo `cat $CACHE_VALUE_FILE` > $KVM_LAPIC_FILE
+     fi
++    systemctl start rt-entsk
+ 
+     return 0
+ }
+@@ -94,6 +95,7 @@ start() {
+ stop() {
+     [ "$1" = "full_rollback" ] && teardown_kvm_mod_low_latency
+     enable_ksm
++    systemctl stop rt-entsk
+     return "$?"
+ }
+ 
+-- 
+2.14.4
+
